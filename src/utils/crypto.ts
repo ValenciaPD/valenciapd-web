@@ -12,11 +12,15 @@ interface StatePayload {
   createdAt: number
 }
 
-interface VerificationPayload {
+export interface VerificationTicketPayload {
   discordId: string
   nonce: string
   expiresAt: number
 }
+
+// -----------------------------------------------------
+// OAUTH STATE
+// -----------------------------------------------------
 
 export function createState(): string {
   const payload: StatePayload = {
@@ -97,9 +101,9 @@ export function verifyState(
 export function createVerificationTicket(
   discordId: string,
 ): string {
-  const payload: VerificationPayload = {
+  const payload: VerificationTicketPayload = {
     discordId,
-    nonce: randomBytes(16).toString('hex'),
+    nonce: randomBytes(24).toString('hex'),
     expiresAt:
       Date.now() + 5 * 60 * 1000,
   }
@@ -120,7 +124,7 @@ export function createVerificationTicket(
 
 export function verifyVerificationTicket(
   ticket: string,
-): VerificationPayload | null {
+): VerificationTicketPayload | null {
   try {
     const [encoded, signature] =
       ticket.split('.')
@@ -152,7 +156,7 @@ export function verifyVerificationTicket(
         Buffer
           .from(encoded, 'base64url')
           .toString('utf8'),
-      ) as VerificationPayload
+      ) as VerificationTicketPayload
 
     if (
       !payload.discordId ||
@@ -173,6 +177,10 @@ export function verifyVerificationTicket(
     return null
   }
 }
+
+// -----------------------------------------------------
+// IP HASH
+// -----------------------------------------------------
 
 export function hashIp(
   ip: string,
