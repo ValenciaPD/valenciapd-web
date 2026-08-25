@@ -25,6 +25,7 @@ export const env = {
   security: {
     sessionSecret: required('SESSION_SECRET'),
     multiaccountSalt: required('MULTIACCOUNT_SALT'),
+    botApiSecret: required('BOT_API_SECRET'),
   },
 
   publicUrl:
