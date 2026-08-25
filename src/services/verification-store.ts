@@ -7,53 +7,56 @@ export interface VerificationRecord {
   verifiedAt: string
 }
 
-const FILE_NAME =
+interface UsedTicket {
+  nonce: string
+  discordId: string
+  usedAt: string
+}
+
+const MEMBERS_FILE =
   'verification-data/members.json'
 
-async function getRecords(): Promise<
-  VerificationRecord[]
-> {
+const USED_TICKETS_FILE =
+  'verification-data/used-tickets.json'
+
+async function readBlobJson<T>(
+  pathname: string,
+  fallback: T,
+): Promise<T> {
   const { blobs } = await list({
-    prefix: FILE_NAME,
+    prefix: pathname,
   })
 
   const blob = blobs.find(
-    item => item.pathname === FILE_NAME,
+    item => item.pathname === pathname,
   )
 
   if (!blob) {
-    return []
+    return fallback
   }
 
   const response =
     await fetch(blob.url)
 
   if (!response.ok) {
-    return []
+    return fallback
   }
 
   try {
-    const data =
-      await response.json()
-
-    if (!Array.isArray(data)) {
-      return []
-    }
-
-    return data
+    return await response.json() as T
   } catch {
-    return []
+    return fallback
   }
 }
 
-async function saveRecords(
-  records: VerificationRecord[],
+async function writeBlobJson<T>(
+  pathname: string,
+  data: T,
 ): Promise<void> {
-
   await put(
-    FILE_NAME,
+    pathname,
     JSON.stringify(
-      records,
+      data,
       null,
       2,
     ),
@@ -66,10 +69,22 @@ async function saveRecords(
   )
 }
 
+// -----------------------------------------------------
+// VERIFIED MEMBERS
+// -----------------------------------------------------
+
+async function getRecords(): Promise<
+  VerificationRecord[]
+> {
+  return readBlobJson(
+    MEMBERS_FILE,
+    [],
+  )
+}
+
 export async function findByDiscordId(
   discordId: string,
 ): Promise<VerificationRecord | null> {
-
   const records =
     await getRecords()
 
@@ -85,7 +100,6 @@ export async function findByDiscordId(
 export async function findByIpHash(
   ipHash: string,
 ): Promise<VerificationRecord | null> {
-
   const records =
     await getRecords()
 
@@ -101,7 +115,6 @@ export async function findByIpHash(
 export async function saveVerification(
   record: VerificationRecord,
 ): Promise<void> {
-
   const records =
     await getRecords()
 
@@ -119,5 +132,56 @@ export async function saveVerification(
     records.push(record)
   }
 
-  await saveRecords(records)
+  await writeBlobJson(
+    MEMBERS_FILE,
+    records,
+  )
+}
+
+// -----------------------------------------------------
+// USED VERIFICATION TICKETS
+// -----------------------------------------------------
+
+async function getUsedTickets(): Promise<
+  UsedTicket[]
+> {
+  return readBlobJson(
+    USED_TICKETS_FILE,
+    [],
+  )
+}
+
+export async function isTicketUsed(
+  nonce: string,
+): Promise<boolean> {
+  const tickets =
+    await getUsedTickets()
+
+  return tickets.some(
+    ticket =>
+      ticket.nonce === nonce,
+  )
+}
+
+export async function markTicketUsed(
+  ticket: UsedTicket,
+): Promise<void> {
+  const tickets =
+    await getUsedTickets()
+
+  if (
+    tickets.some(
+      item =>
+        item.nonce === ticket.nonce,
+    )
+  ) {
+    return
+  }
+
+  tickets.push(ticket)
+
+  await writeBlobJson(
+    USED_TICKETS_FILE,
+    tickets,
+  )
 }
