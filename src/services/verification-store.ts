@@ -7,7 +7,7 @@ export interface VerificationRecord {
   verifiedAt: string
 }
 
-interface UsedTicket {
+export interface UsedTicket {
   nonce: string
   discordId: string
   usedAt: string
@@ -19,7 +19,11 @@ const MEMBERS_FILE =
 const USED_TICKETS_FILE =
   'verification-data/used-tickets.json'
 
-async function readBlobJson<T>(
+// -----------------------------------------------------
+// GENERIC BLOB HELPERS
+// -----------------------------------------------------
+
+async function readJson<T>(
   pathname: string,
   fallback: T,
 ): Promise<T> {
@@ -49,7 +53,7 @@ async function readBlobJson<T>(
   }
 }
 
-async function writeBlobJson<T>(
+async function writeJson<T>(
   pathname: string,
   data: T,
 ): Promise<void> {
@@ -73,10 +77,10 @@ async function writeBlobJson<T>(
 // VERIFIED MEMBERS
 // -----------------------------------------------------
 
-async function getRecords(): Promise<
+async function getMembers(): Promise<
   VerificationRecord[]
 > {
-  return readBlobJson(
+  return readJson(
     MEMBERS_FILE,
     [],
   )
@@ -85,14 +89,13 @@ async function getRecords(): Promise<
 export async function findByDiscordId(
   discordId: string,
 ): Promise<VerificationRecord | null> {
-  const records =
-    await getRecords()
+  const members =
+    await getMembers()
 
   return (
-    records.find(
-      record =>
-        record.discordId ===
-        discordId,
+    members.find(
+      member =>
+        member.discordId === discordId,
     ) || null
   )
 }
@@ -100,14 +103,13 @@ export async function findByDiscordId(
 export async function findByIpHash(
   ipHash: string,
 ): Promise<VerificationRecord | null> {
-  const records =
-    await getRecords()
+  const members =
+    await getMembers()
 
   return (
-    records.find(
-      record =>
-        record.ipHash ===
-        ipHash,
+    members.find(
+      member =>
+        member.ipHash === ipHash,
     ) || null
   )
 }
@@ -115,37 +117,36 @@ export async function findByIpHash(
 export async function saveVerification(
   record: VerificationRecord,
 ): Promise<void> {
-  const records =
-    await getRecords()
+  const members =
+    await getMembers()
 
-  const existingIndex =
-    records.findIndex(
-      item =>
-        item.discordId ===
+  const index =
+    members.findIndex(
+      member =>
+        member.discordId ===
         record.discordId,
     )
 
-  if (existingIndex >= 0) {
-    records[existingIndex] =
-      record
+  if (index >= 0) {
+    members[index] = record
   } else {
-    records.push(record)
+    members.push(record)
   }
 
-  await writeBlobJson(
+  await writeJson(
     MEMBERS_FILE,
-    records,
+    members,
   )
 }
 
 // -----------------------------------------------------
-// USED VERIFICATION TICKETS
+// USED TICKETS
 // -----------------------------------------------------
 
 async function getUsedTickets(): Promise<
   UsedTicket[]
 > {
-  return readBlobJson(
+  return readJson(
     USED_TICKETS_FILE,
     [],
   )
@@ -169,18 +170,19 @@ export async function markTicketUsed(
   const tickets =
     await getUsedTickets()
 
-  if (
+  const alreadyUsed =
     tickets.some(
       item =>
         item.nonce === ticket.nonce,
     )
-  ) {
+
+  if (alreadyUsed) {
     return
   }
 
   tickets.push(ticket)
 
-  await writeBlobJson(
+  await writeJson(
     USED_TICKETS_FILE,
     tickets,
   )
