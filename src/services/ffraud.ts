@@ -1,7 +1,12 @@
 export class FFraudError extends Error {
-  constructor(message: string) {
+  readonly status: number
+  readonly errorCode?: number
+
+  constructor(message: string, status = 500, errorCode?: number) {
     super(message)
     this.name = 'FFraudError'
+    this.status = status
+    this.errorCode = errorCode
   }
 }
 
@@ -26,27 +31,26 @@ export interface FFraudResult {
   cloud_provider?: string
   threat_tags?: string[]
   message?: string
+  error_code?: number
+  error?: string
 }
 
-export async function checkIp(
-  ip: string,
-): Promise<FFraudResult> {
+export async function checkIp(ip: string): Promise<FFraudResult> {
   const response = await fetch(
     `https://api.ffraud.com/public/ip/${encodeURIComponent(ip)}`,
     {
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
       cache: 'no-store',
     },
   )
 
-  const data = await response.json() as FFraudResult
+  const data = await response.json().catch(() => ({})) as FFraudResult
 
   if (!response.ok || data.success === false) {
     throw new FFraudError(
-      data.message ||
-      `FFraud HTTP ${response.status}`,
+      data.message || data.error || `FFraud HTTP ${response.status}`,
+      response.status,
+      data.error_code,
     )
   }
 
