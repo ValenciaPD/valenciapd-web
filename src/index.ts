@@ -1,38 +1,11 @@
 import express from 'express'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { put, list } from '@vercel/blob'
-import { randomBytes } from 'crypto'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import transcriptRoutes from './routes/transcripts.js'
+import verificationRoutes from './routes/verification.js'
 
 const app = express()
 
 app.use(express.json({ limit: '10mb' }))
-
-// -----------------------------------------------------
-// GENERATE TRANSCRIPT ID
-// -----------------------------------------------------
-
-function generateTranscriptId(length = 8): string {
-  const chars =
-    'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
-
-  let result = ''
-
-  while (result.length < length) {
-    const bytes = randomBytes(length)
-
-    for (const byte of bytes) {
-      result += chars[byte % chars.length]
-
-      if (result.length === length) break
-    }
-  }
-
-  return result
-}
 
 // -----------------------------------------------------
 // HOME
@@ -41,25 +14,27 @@ function generateTranscriptId(length = 8): string {
 app.get('/', (req, res) => {
   res.type('html').send(`
     <!doctype html>
-    <html>
+    <html lang="es">
       <head>
         <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <title>ValenciaPD</title>
         <link rel="stylesheet" href="/style.css" />
       </head>
 
       <body>
         <nav>
-          <a href="/">Home</a>
+          <a href="/">Inicio</a>
           <a href="/about">About</a>
           <a href="/api-data">API Data</a>
           <a href="/healthz">Health</a>
+          <a href="/verify">Verificación</a>
         </nav>
 
         <h1>ValenciaPD</h1>
-        <p>ValenciaPD services are online.</p>
+        <p>Servicios de ValenciaPD online.</p>
 
-        <img src="/logo.png" alt="Logo" width="120" />
+        <img src="/logo.png" alt="ValenciaPD" width="120" />
       </body>
     </html>
   `)
@@ -71,18 +46,17 @@ app.get('/', (req, res) => {
 
 app.get('/about', (req, res) => {
   res.sendFile(
-    path.join(__dirname, '..', 'components', 'about.htm')
+    new URL('../components/about.htm', import.meta.url)
   )
 })
 
 // -----------------------------------------------------
-// EXAMPLE API
+// API DATA
 // -----------------------------------------------------
 
 app.get('/api-data', (req, res) => {
   res.json({
-    message: 'Here is some sample API data',
-    items: ['apple', 'banana', 'cherry'],
+    message: 'ValenciaPD API online',
   })
 })
 
@@ -97,181 +71,11 @@ app.get('/healthz', (req, res) => {
   })
 })
 
-app.get('/test-transcript', async (req, res) => {
-  try {
-    const id = generateTranscriptId()
-
-    const html = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Transcript de prueba</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              max-width: 900px;
-              margin: 40px auto;
-              padding: 20px;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Transcript de prueba</h1>
-          <p>Si estás viendo esta página, el sistema de transcripts funciona correctamente.</p>
-          <p>ID: <strong>${id}</strong></p>
-        </body>
-      </html>
-    `
-
-    const blob = await put(`transcripts/${id}.html`, html, {
-      access: 'public',
-      contentType: 'text/html; charset=utf-8',
-      addRandomSuffix: false,
-    })
-
-    res.type('html').send(`
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Test OK</title>
-        </head>
-        <body>
-          <h1>Transcript creado correctamente</h1>
-          <p>ID: <strong>${id}</strong></p>
-          <p>
-            <a href="https://transcripts.valenciapd.es/${id}" target="_blank">
-              Abrir transcript
-            </a>
-          </p>
-          <p>Blob: ${blob.url}</p>
-        </body>
-      </html>
-    `)
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      error: 'Failed to create test transcript',
-    })
-  }
-})
-
-
 // -----------------------------------------------------
-// CREATE TRANSCRIPT
-// POST /api/transcripts
+// ROUTES
 // -----------------------------------------------------
 
-app.post('/api/transcripts', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization
-
-    if (
-      !process.env.TRANSCRIPT_API_SECRET ||
-      authHeader !==
-        `Bearer ${process.env.TRANSCRIPT_API_SECRET}`
-    ) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-      })
-    }
-
-    const { html } = req.body
-
-    if (typeof html !== 'string' || !html.trim()) {
-      return res.status(400).json({
-        error: 'Missing transcript HTML',
-      })
-    }
-
-    const id = generateTranscriptId()
-
-    const pathname = `transcripts/${id}.html`
-
-    const blob = await put(pathname, html, {
-      access: 'public',
-      contentType: 'text/html; charset=utf-8',
-      addRandomSuffix: false,
-    })
-
-    return res.status(201).json({
-      success: true,
-      id,
-      url: `https://transcripts.valenciapd.es/${id}`,
-      blobUrl: blob.url,
-    })
-  } catch (error) {
-    console.error('Transcript upload error:', error)
-
-    return res.status(500).json({
-      error: 'Failed to save transcript',
-    })
-  }
-})
-
-// -----------------------------------------------------
-// VIEW TRANSCRIPT
-// GET /ABCDEFGH
-// -----------------------------------------------------
-
-app.get('/:id', async (req, res, next) => {
-  const { id } = req.params
-
-  // Only treat 8-character IDs as transcript IDs.
-  if (!/^[A-Za-z0-9]{8}$/.test(id)) {
-    return next()
-  }
-
-  try {
-    const { blobs } = await list({
-      prefix: `transcripts/${id}.html`,
-    })
-
-    const blob = blobs.find(
-      (item) => item.pathname === `transcripts/${id}.html`
-    )
-
-    if (!blob) {
-      return res.status(404).type('html').send(`
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Transcript not found</title>
-          </head>
-          <body>
-            <h1>Transcript not found</h1>
-            <p>The requested transcript does not exist.</p>
-          </body>
-        </html>
-      `)
-    }
-
-    const response = await fetch(blob.url)
-
-    if (!response.ok) {
-      return res.status(404).send('Transcript not found')
-    }
-
-    const html = await response.text()
-
-    return res
-      .status(200)
-      .set('Content-Type', 'text/html; charset=utf-8')
-      .set(
-        'Cache-Control',
-        'public, max-age=31536000, immutable'
-      )
-      .send(html)
-  } catch (error) {
-    console.error('Transcript read error:', error)
-
-    return res.status(500).send(
-      'Failed to load transcript'
-    )
-  }
-})
+app.use(transcriptRoutes)
+app.use(verificationRoutes)
 
 export default app
