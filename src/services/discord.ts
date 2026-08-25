@@ -117,3 +117,58 @@ export async function addVerifiedRole(userId: string): Promise<void> {
     throw new Error(`Could not assign verified role: ${text}`)
   }
 }
+
+// -----------------------------------------------------
+// VERIFICATION LOGGING
+// -----------------------------------------------------
+
+const VERIFICATION_LOG_CHANNEL_ID =
+  '1541818964248895558'
+
+export async function sendVerificationLog(options: {
+  title: string
+  description?: string
+  color?: number
+  fields?: Array<{
+    name: string
+    value: string
+    inline?: boolean
+  }>
+}): Promise<void> {
+  try {
+    const response = await fetch(
+      `${DISCORD_API}/channels/${VERIFICATION_LOG_CHANNEL_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bot ${env.discord.botToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          embeds: [
+            {
+              title: options.title,
+              description: options.description,
+              color: options.color ?? 0x5865F2,
+              fields: options.fields ?? [],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: 'ValenciaPD | Sistema de verificación',
+              },
+            },
+          ],
+        }),
+      },
+    )
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error(
+        `Verification log failed (HTTP ${response.status}): ${text}`,
+      )
+    }
+  } catch (error) {
+    console.error('Verification log error:', error)
+  }
+}
+
