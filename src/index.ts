@@ -95,7 +95,7 @@ app.get('/healthz', (req, res) => {
 // ROUTES
 // -----------------------------------------------------
 
-app.use(transcriptRoutes)
 app.use(verificationRoutes)
+app.use(transcriptRoutes)
 
 export default app
