@@ -18,10 +18,6 @@ export const env = {
     verifiedRoleId: required('VERIFIED_ROLE_ID'),
   },
 
-  ipqs: {
-    apiKey: required('IPQS_API_KEY'),
-  },
-
   security: {
     sessionSecret: required('SESSION_SECRET'),
     multiaccountSalt: required('MULTIACCOUNT_SALT'),
