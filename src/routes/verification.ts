@@ -21,9 +21,29 @@ import {
   getDiscordUser,
   addUserToGuild,
   addVerifiedRole,
+  sendVerificationLog,
 } from '../services/discord.js'
 
 const router = Router()
+
+async function logResult(data: Parameters<typeof sendVerificationLog>[0]): Promise<void> {
+  await sendVerificationLog(data)
+}
+
+function compactError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return String(error)
+}
+
+function failurePage(title: string, message: string): string {
+  return page(
+    title,
+    `<div class="eyebrow">VALENCIAPD · ERROR</div><h1>${escapeHtml(title)}</h1><p class="hero">${escapeHtml(message)}</p>`,
+  )
+}
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers['x-forwarded-for']
@@ -247,6 +267,10 @@ router.get('/verify', (req, res) => {
 })
 
 router.get('/callback', async (req, res) => {
+  let stage = 'start'
+  let logUserId: string | undefined
+  let logUsername: string | undefined
+
   try {
     const code = typeof req.query.code === 'string' ? req.query.code : null
     const rawState = typeof req.query.state === 'string' ? req.query.state : null
@@ -303,10 +327,23 @@ router.get('/callback', async (req, res) => {
       )
     }
 
+    stage = 'discord_oauth_token'
     const tokens = await exchangeCode(code)
+    stage = 'discord_user'
     const user = await getDiscordUser(tokens.access_token)
+    logUserId = user.id
+    logUsername = user.global_name || user.username
 
     if (user.id !== ticketPayload.discordId) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · Cuenta incorrecta',
+        status: 'warning',
+        stage: 'account_mismatch',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: 'El ticket fue creado para otra cuenta de Discord.',
+      })
+
       return res.status(403).type('html').send(
         page(
           'Cuenta incorrecta',
@@ -315,19 +352,24 @@ router.get('/callback', async (req, res) => {
       )
     }
 
+    stage = 'client_ip'
     const ip = getClientIp(req)
 
     if (!ip) {
       throw new Error('No se pudo determinar la IP del cliente')
     }
 
+    stage = 'lookup_discord'
     const ipHash = hashIp(ip)
     const existingDiscord = await findByDiscordId(user.id)
 
     if (existingDiscord) {
-      await addUserToGuild(tokens.access_token, user.id)
-      await addVerifiedRole(user.id)
-      await markTicketUsed({
+      stage = 'discord_join_guild'
+    await addUserToGuild(tokens.access_token, user.id)
+      stage = 'discord_assign_role'
+    await addVerifiedRole(user.id)
+      stage = 'mark_ticket_used'
+    await markTicketUsed({
         nonce: ticketPayload.nonce,
         discordId: user.id,
         usedAt: new Date().toISOString(),
@@ -341,9 +383,19 @@ router.get('/callback', async (req, res) => {
       )
     }
 
+    stage = 'lookup_ip'
     const existingIp = await findByIpHash(ipHash)
 
     if (existingIp && existingIp.discordId !== user.id) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · Posible multicuenta',
+        status: 'warning',
+        stage: 'multiaccount',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: 'El hash de conexión ya está asociado a otra cuenta verificada.',
+      })
+
       return res.status(403).type('html').send(
         page(
           'Posible multicuenta',
@@ -355,14 +407,32 @@ router.get('/callback', async (req, res) => {
     let ffraud
 
     try {
+      stage = 'ffraud'
       ffraud = await checkIp(ip)
     } catch (error) {
       if (error instanceof FFraudError) {
-        console.error('FFraud error:', error.message)
+        console.error('FFraud error:', error.status, error.message)
+
+        await logResult({
+          title: '❌ Verificación no completada · FFraud',
+          status: error.status === 429 ? 'warning' : 'error',
+          stage: 'ffraud',
+          userId: user.id,
+          username: user.global_name || user.username,
+          reason: error.status === 429
+            ? 'FFraud ha limitado temporalmente la consulta por IP (rate limit).'
+            : 'FFraud no pudo completar la consulta.',
+          details: `${error.status} ${error.message}${error.errorCode ? ` (code ${error.errorCode})` : ''}`,
+        })
+
+        const rateLimited = error.status === 429
+
         return res.status(503).type('html').send(
-          page(
-            'Comprobación temporalmente no disponible',
-            `<div class="eyebrow">VALENCIAPD · SEGURIDAD</div><h1>No se pudo comprobar la conexión</h1><p class="hero">El servicio de inteligencia de IP no respondió correctamente. No se ha concedido el rol.</p><p class="hero">Vuelve a intentarlo en unos minutos.</p>`,
+          failurePage(
+            rateLimited ? 'Demasiadas comprobaciones' : 'Comprobación no disponible',
+            rateLimited
+              ? 'El servicio de seguridad está limitando temporalmente las consultas desde esta conexión. Espera unos segundos y vuelve a intentarlo.'
+              : 'No hemos podido comprobar tu conexión. No se ha concedido el rol. Inténtalo de nuevo en unos minutos.',
           ),
         )
       }
@@ -381,6 +451,22 @@ router.get('/callback', async (req, res) => {
     })
 
     if (ffraud.vpn || ffraud.tor) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · VPN/Tor',
+        status: 'warning',
+        stage: 'network_check',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: ffraud.reason || 'VPN o Tor detectado.',
+        fraudScore: ffraud.fraud_score,
+        vpn: ffraud.vpn,
+        proxy: ffraud.proxy,
+        tor: ffraud.tor,
+        hosting: ffraud.hosting,
+        risk: ffraud.risk,
+        confidence: ffraud.confidence,
+      })
+
       return res.status(403).type('html').send(
         page(
           'Conexión no permitida',
@@ -390,6 +476,22 @@ router.get('/callback', async (req, res) => {
     }
 
     if (ffraud.proxy) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · Proxy',
+        status: 'warning',
+        stage: 'network_check',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: ffraud.reason || 'Proxy detectado.',
+        fraudScore: ffraud.fraud_score,
+        vpn: ffraud.vpn,
+        proxy: ffraud.proxy,
+        tor: ffraud.tor,
+        hosting: ffraud.hosting,
+        risk: ffraud.risk,
+        confidence: ffraud.confidence,
+      })
+
       return res.status(403).type('html').send(
         page(
           'Proxy detectado',
@@ -405,6 +507,22 @@ router.get('/callback', async (req, res) => {
       typeof ffraud.fraud_score === 'number' &&
       ffraud.fraud_score >= 75
     ) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · Riesgo elevado',
+        status: 'warning',
+        stage: 'risk_check',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: ffraud.reason || 'Fraud score elevado.',
+        fraudScore: ffraud.fraud_score,
+        vpn: ffraud.vpn,
+        proxy: ffraud.proxy,
+        tor: ffraud.tor,
+        hosting: ffraud.hosting,
+        risk: ffraud.risk,
+        confidence: ffraud.confidence,
+      })
+
       return res.status(403).type('html').send(
         page(
           'Riesgo elevado',
@@ -419,6 +537,22 @@ router.get('/callback', async (req, res) => {
       typeof ffraud.fraud_score === 'number' &&
       ffraud.fraud_score >= 50
     ) {
+      await logResult({
+        title: '⚠️ Verificación rechazada · Datacenter/Hosting',
+        status: 'warning',
+        stage: 'hosting_check',
+        userId: user.id,
+        username: user.global_name || user.username,
+        reason: ffraud.reason || 'Red de alojamiento detectada.',
+        fraudScore: ffraud.fraud_score,
+        vpn: ffraud.vpn,
+        proxy: ffraud.proxy,
+        tor: ffraud.tor,
+        hosting: ffraud.hosting,
+        risk: ffraud.risk,
+        confidence: ffraud.confidence,
+      })
+
       return res.status(403).type('html').send(
         page(
           'Red no permitida',
@@ -427,9 +561,13 @@ router.get('/callback', async (req, res) => {
       )
     }
 
+    stage = 'discord_join_guild'
     await addUserToGuild(tokens.access_token, user.id)
+
+    stage = 'discord_assign_role'
     await addVerifiedRole(user.id)
 
+    stage = 'save_verification'
     await saveVerification({
       discordId: user.id,
       username: user.global_name || user.username,
@@ -437,10 +575,27 @@ router.get('/callback', async (req, res) => {
       verifiedAt: new Date().toISOString(),
     })
 
+    stage = 'mark_ticket_used'
     await markTicketUsed({
       nonce: ticketPayload.nonce,
       discordId: user.id,
       usedAt: new Date().toISOString(),
+    })
+
+    await logResult({
+      title: '✅ Verificación completada',
+      status: 'success',
+      stage: 'complete',
+      userId: user.id,
+      username: user.global_name || user.username,
+      reason: 'Cuenta verificada, conexión aprobada y rol asignado.',
+      fraudScore: ffraud.fraud_score,
+      vpn: ffraud.vpn,
+      proxy: ffraud.proxy,
+      tor: ffraud.tor,
+      hosting: ffraud.hosting,
+      risk: ffraud.risk,
+      confidence: ffraud.confidence,
     })
 
     return res.status(200).type('html').send(
@@ -450,13 +605,35 @@ router.get('/callback', async (req, res) => {
       ),
     )
   } catch (error) {
-    console.error('Verification error:', error)
+    const details = compactError(error)
+    console.error('Verification error:', { stage, details, userId: logUserId })
+
+    await logResult({
+      title: '❌ Error durante la verificación',
+      status: 'error',
+      stage,
+      userId: logUserId,
+      username: logUsername,
+      reason: 'Error no controlado durante el flujo de verificación.',
+      details,
+    })
+
+    let message = 'No hemos podido completar la verificación en este momento. Inténtalo de nuevo.'
+
+    if (stage === 'discord_oauth_token') {
+      message = 'Discord no pudo completar la autenticación. Vuelve a iniciar la verificación desde Discord.'
+    } else if (stage === 'discord_user') {
+      message = 'No hemos podido obtener tu cuenta de Discord. Vuelve a intentarlo.'
+    } else if (stage === 'discord_join_guild') {
+      message = 'No hemos podido darte acceso al servidor. El equipo debe revisar los permisos del bot.'
+    } else if (stage === 'discord_assign_role') {
+      message = 'No hemos podido asignarte el rol de Miembro. El equipo debe revisar la jerarquía y permisos del bot.'
+    } else if (stage === 'save_verification' || stage === 'mark_ticket_used') {
+      message = 'La comprobación terminó, pero no hemos podido guardar correctamente el resultado. No se ha dado acceso adicional.'
+    }
 
     return res.status(500).type('html').send(
-      page(
-        'Error de verificación',
-        `<div class="eyebrow">VALENCIAPD · ERROR</div><h1>Algo salió mal</h1><p class="hero">No hemos podido completar la verificación en este momento.</p><a class="button orange" href="/">Volver</a>`,
-      ),
+      failurePage('No se pudo completar la verificación', message),
     )
   }
 })
