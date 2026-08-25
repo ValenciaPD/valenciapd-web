@@ -13,23 +13,14 @@ export interface UsedTicket {
   usedAt: string
 }
 
-const MEMBERS_FILE =
-  'verification-data/members.json'
-
-const USED_TICKETS_FILE =
-  'verification-data/used-tickets.json'
-
-// -----------------------------------------------------
-// GENERIC BLOB HELPERS
-// -----------------------------------------------------
+const MEMBERS_FILE = 'verification-data/members.json'
+const USED_TICKETS_FILE = 'verification-data/used-tickets.json'
 
 async function readJson<T>(
   pathname: string,
   fallback: T,
 ): Promise<T> {
-  const { blobs } = await list({
-    prefix: pathname,
-  })
+  const { blobs } = await list({ prefix: pathname })
 
   const blob = blobs.find(
     item => item.pathname === pathname,
@@ -39,8 +30,7 @@ async function readJson<T>(
     return fallback
   }
 
-  const response =
-    await fetch(blob.url)
+  const response = await fetch(blob.url)
 
   if (!response.ok) {
     return fallback
@@ -59,73 +49,45 @@ async function writeJson<T>(
 ): Promise<void> {
   await put(
     pathname,
-    JSON.stringify(
-      data,
-      null,
-      2,
-    ),
+    JSON.stringify(data, null, 2),
     {
       access: 'public',
-      contentType:
-        'application/json',
+      contentType: 'application/json',
       addRandomSuffix: false,
     },
   )
 }
 
-// -----------------------------------------------------
-// VERIFIED MEMBERS
-// -----------------------------------------------------
-
-async function getMembers(): Promise<
-  VerificationRecord[]
-> {
-  return readJson(
-    MEMBERS_FILE,
-    [],
-  )
+async function getMembers(): Promise<VerificationRecord[]> {
+  return readJson(MEMBERS_FILE, [])
 }
 
 export async function findByDiscordId(
   discordId: string,
 ): Promise<VerificationRecord | null> {
-  const members =
-    await getMembers()
-
-  return (
-    members.find(
-      member =>
-        member.discordId === discordId,
-    ) || null
-  )
+  const members = await getMembers()
+  return members.find(
+    member => member.discordId === discordId,
+  ) || null
 }
 
 export async function findByIpHash(
   ipHash: string,
 ): Promise<VerificationRecord | null> {
-  const members =
-    await getMembers()
-
-  return (
-    members.find(
-      member =>
-        member.ipHash === ipHash,
-    ) || null
-  )
+  const members = await getMembers()
+  return members.find(
+    member => member.ipHash === ipHash,
+  ) || null
 }
 
 export async function saveVerification(
   record: VerificationRecord,
 ): Promise<void> {
-  const members =
-    await getMembers()
+  const members = await getMembers()
 
-  const index =
-    members.findIndex(
-      member =>
-        member.discordId ===
-        record.discordId,
-    )
+  const index = members.findIndex(
+    member => member.discordId === record.discordId,
+  )
 
   if (index >= 0) {
     members[index] = record
@@ -133,57 +95,35 @@ export async function saveVerification(
     members.push(record)
   }
 
-  await writeJson(
-    MEMBERS_FILE,
-    members,
-  )
+  await writeJson(MEMBERS_FILE, members)
 }
 
-// -----------------------------------------------------
-// USED TICKETS
-// -----------------------------------------------------
-
-async function getUsedTickets(): Promise<
-  UsedTicket[]
-> {
-  return readJson(
-    USED_TICKETS_FILE,
-    [],
-  )
+async function getUsedTickets(): Promise<UsedTicket[]> {
+  return readJson(USED_TICKETS_FILE, [])
 }
 
 export async function isTicketUsed(
   nonce: string,
 ): Promise<boolean> {
-  const tickets =
-    await getUsedTickets()
-
+  const tickets = await getUsedTickets()
   return tickets.some(
-    ticket =>
-      ticket.nonce === nonce,
+    ticket => ticket.nonce === nonce,
   )
 }
 
 export async function markTicketUsed(
   ticket: UsedTicket,
 ): Promise<void> {
-  const tickets =
-    await getUsedTickets()
+  const tickets = await getUsedTickets()
 
-  const alreadyUsed =
+  if (
     tickets.some(
-      item =>
-        item.nonce === ticket.nonce,
+      item => item.nonce === ticket.nonce,
     )
-
-  if (alreadyUsed) {
+  ) {
     return
   }
 
   tickets.push(ticket)
-
-  await writeJson(
-    USED_TICKETS_FILE,
-    tickets,
-  )
+  await writeJson(USED_TICKETS_FILE, tickets)
 }
