@@ -50,12 +50,21 @@ export async function exchangeCode(code: string): Promise<TokenResponse> {
     },
   )
 
+  const text = await response.text()
+
   if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`Discord token exchange failed: ${text}`)
+    throw new Error(
+      `DISCORD_TOKEN_EXCHANGE_HTTP_${response.status}: ${text.slice(0, 600)}`,
+    )
   }
 
-  return response.json()
+  try {
+    return JSON.parse(text) as TokenResponse
+  } catch {
+    throw new Error(
+      `DISCORD_TOKEN_EXCHANGE_INVALID_JSON: ${text.slice(0, 600)}`,
+    )
+  }
 }
 
 export async function getDiscordUser(
@@ -70,11 +79,48 @@ export async function getDiscordUser(
     },
   )
 
+  const text = await response.text()
+
   if (!response.ok) {
-    throw new Error('Could not retrieve Discord user')
+    throw new Error(
+      `DISCORD_USER_HTTP_${response.status}: ${text.slice(0, 600)}`,
+    )
   }
 
-  return response.json()
+  try {
+    return JSON.parse(text) as DiscordUser
+  } catch {
+    throw new Error(
+      `DISCORD_USER_INVALID_JSON: ${text.slice(0, 600)}`,
+    )
+  }
+}
+
+export async function isGuildMember(
+  userId: string,
+): Promise<boolean> {
+  const response = await fetch(
+    `${DISCORD_API}/guilds/${env.discord.guildId}/members/${userId}`,
+    {
+      headers: {
+        Authorization: `Bot ${env.discord.botToken}`,
+      },
+    },
+  )
+
+  if (response.status === 200) {
+    return true
+  }
+
+  if (response.status === 404) {
+    return false
+  }
+
+  const text = await response.text()
+
+  throw new Error(
+    `DISCORD_MEMBER_CHECK_HTTP_${response.status}: ${text.slice(0, 600)}`,
+  )
 }
 
 export async function addUserToGuild(
@@ -95,13 +141,18 @@ export async function addUserToGuild(
     },
   )
 
+  const text = await response.text()
+
   if (!response.ok && response.status !== 204) {
-    const text = await response.text()
-    throw new Error(`Could not add member to guild: ${text}`)
+    throw new Error(
+      `DISCORD_ADD_GUILD_HTTP_${response.status}: ${text.slice(0, 600)}`,
+    )
   }
 }
 
-export async function addVerifiedRole(userId: string): Promise<void> {
+export async function addVerifiedRole(
+  userId: string,
+): Promise<void> {
   const response = await fetch(
     `${DISCORD_API}/guilds/${env.discord.guildId}/members/${userId}/roles/${env.discord.verifiedRoleId}`,
     {
@@ -112,18 +163,16 @@ export async function addVerifiedRole(userId: string): Promise<void> {
     },
   )
 
+  const text = await response.text()
+
   if (!response.ok && response.status !== 204) {
-    const text = await response.text()
-    throw new Error(`Could not assign verified role: ${text}`)
+    throw new Error(
+      `DISCORD_ROLE_HTTP_${response.status}: ${text.slice(0, 600)}`,
+    )
   }
 }
 
-// -----------------------------------------------------
-// VERIFICATION LOGGING
-// -----------------------------------------------------
-
-const VERIFICATION_LOG_CHANNEL_ID =
-  '1541818964248895558'
+const VERIFICATION_LOG_CHANNEL_ID = '1541818964248895558'
 
 export async function sendVerificationLog(options: {
   title: string
@@ -164,11 +213,10 @@ export async function sendVerificationLog(options: {
     if (!response.ok) {
       const text = await response.text()
       console.error(
-        `Verification log failed (HTTP ${response.status}): ${text}`,
+        `Verification log failed (HTTP ${response.status}): ${text.slice(0, 400)}`,
       )
     }
   } catch (error) {
     console.error('Verification log error:', error)
   }
 }
-
