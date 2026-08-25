@@ -8,6 +8,8 @@ import { env } from '../config/env.js'
 import {
   createState,
   verifyState,
+  createVerificationTicket,
+  verifyVerificationTicket,
   hashIp,
 } from '../utils/crypto.js'
 
@@ -19,6 +21,8 @@ import {
   findByDiscordId,
   findByIpHash,
   saveVerification,
+  isTicketUsed,
+  markTicketUsed,
 } from '../services/verification-store.js'
 
 import {
@@ -93,6 +97,7 @@ function page(
     body {
       margin: 0;
       min-height: 100vh;
+
       font-family:
         Inter,
         system-ui,
@@ -124,9 +129,11 @@ function page(
     }
 
     .card {
-      background: rgba(18, 24, 38, 0.92);
+      background:
+        rgba(18, 24, 38, 0.94);
 
-      border: 1px solid
+      border:
+        1px solid
         rgba(255, 255, 255, 0.08);
 
       border-radius: 20px;
@@ -156,9 +163,11 @@ function page(
 
       border-radius: 999px;
 
-      background: rgba(255, 106, 0, 0.12);
+      background:
+        rgba(255, 106, 0, 0.12);
 
-      border: 1px solid
+      border:
+        1px solid
         rgba(255, 106, 0, 0.3);
 
       color: #ff8a3d;
@@ -172,17 +181,10 @@ function page(
     h1 {
       margin: 0 0 16px;
 
-      font-size: clamp(
-        32px,
-        5vw,
-        54px
-      );
+      font-size:
+        clamp(32px, 5vw, 54px);
 
       line-height: 1.05;
-    }
-
-    h2 {
-      margin-top: 0;
     }
 
     p {
@@ -215,7 +217,8 @@ function page(
       background:
         rgba(255, 255, 255, 0.035);
 
-      border: 1px solid
+      border:
+        1px solid
         rgba(255, 255, 255, 0.06);
     }
 
@@ -296,6 +299,23 @@ function page(
         rgba(255, 255, 255, 0.04);
     }
 
+    .timer {
+      display: inline-block;
+
+      margin-top: 10px;
+
+      padding: 8px 12px;
+
+      border-radius: 8px;
+
+      background:
+        rgba(88, 101, 242, 0.15);
+
+      color: #9da7ff;
+
+      font-weight: 700;
+    }
+
     .footer {
       margin-top: 28px;
 
@@ -319,8 +339,11 @@ function page(
 </head>
 
 <body>
+
   <main class="container">
+
     <section class="card">
+
       <img
         class="logo"
         src="/logo.png"
@@ -332,118 +355,279 @@ function page(
       <div class="footer">
         ValenciaPD | Comunitat Valenciana
       </div>
+
     </section>
+
   </main>
+
 </body>
 </html>
 `
 }
 
-// -----------------------------------------------------
+// =====================================================
+// BOT API
+// POST /api/verification/ticket
+// =====================================================
+
+router.post(
+  '/api/verification/ticket',
+  async (req, res) => {
+    try {
+      const auth =
+        req.headers.authorization
+
+      if (
+        !auth ||
+        auth !==
+          `Bearer ${env.security.botApiSecret}`
+      ) {
+        return res
+          .status(401)
+          .json({
+            error: 'Unauthorized',
+          })
+      }
+
+      const {
+        discordId,
+      } = req.body
+
+      if (
+        typeof discordId !== 'string' ||
+        !/^\d{17,20}$/.test(discordId)
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              'Invalid Discord ID',
+          })
+      }
+
+      const ticket =
+        createVerificationTicket(
+          discordId,
+        )
+
+      const url =
+        `${env.publicUrl}/verify?code=${encodeURIComponent(ticket)}`
+
+      return res
+        .status(201)
+        .json({
+          success: true,
+          expiresIn: 300,
+          ticket,
+          url,
+        })
+
+    } catch (error) {
+      console.error(
+        'Ticket creation error:',
+        error,
+      )
+
+      return res
+        .status(500)
+        .json({
+          error:
+            'Failed to create verification ticket',
+        })
+    }
+  },
+)
+
+// =====================================================
 // GET /verify
-// -----------------------------------------------------
+// =====================================================
 
 router.get(
   '/verify',
   (req, res) => {
+    const ticket =
+      typeof req.query.code === 'string'
+        ? req.query.code
+        : null
+
+    if (!ticket) {
+      return res
+        .status(400)
+        .type('html')
+        .send(
+          page(
+            'Verificación no disponible',
+            `
+              <div class="badge">
+                VALENCIAPD
+              </div>
+
+              <h1 class="error">
+                Verificación no disponible
+              </h1>
+
+              <p>
+                Debes iniciar la verificación
+                desde el botón oficial
+                de ValenciaPD en Discord.
+              </p>
+
+              <p>
+                Los enlaces de verificación
+                solamente son válidos durante
+                5 minutos.
+              </p>
+            `,
+          ),
+        )
+    }
+
+    const ticketPayload =
+      verifyVerificationTicket(ticket)
+
+    if (!ticketPayload) {
+      return res
+        .status(400)
+        .type('html')
+        .send(
+          page(
+            'Verificación caducada',
+            `
+              <div class="badge">
+                VALENCIAPD
+              </div>
+
+              <h1 class="error">
+                El enlace ha caducado
+              </h1>
+
+              <p>
+                Este enlace de verificación
+                ya no es válido.
+              </p>
+
+              <p>
+                Vuelve a Discord y pulsa
+                nuevamente el botón
+                <strong>
+                  Verificar cuenta
+                </strong>.
+              </p>
+            `,
+          ),
+        )
+    }
+
     const state =
       createState()
 
+    const oauthState =
+      `${state}|${ticket}`
+
     const discordUrl =
-      getDiscordOAuthUrl(state)
+      getDiscordOAuthUrl(
+        oauthState,
+      )
 
-    res.type('html').send(
-      page(
-        'Verificación',
-        `
-          <div class="badge">
-            VERIFICACIÓN OFICIAL
-          </div>
-
-          <h1>
-            Verifica tu cuenta
-          </h1>
-
-          <p>
-            Para acceder a ValenciaPD,
-            necesitas verificar tu cuenta
-            de Discord.
-          </p>
-
-          <div class="features">
-
-            <div class="feature">
-              <strong>
-                Discord
-              </strong>
-
-              <span>
-                Inicia sesión mediante
-                el sistema oficial
-                de Discord.
-              </span>
+    res
+      .type('html')
+      .send(
+        page(
+          'Verificación ValenciaPD',
+          `
+            <div class="badge">
+              VERIFICACIÓN OFICIAL
             </div>
 
-            <div class="feature">
-              <strong>
-                Seguridad
-              </strong>
+            <h1>
+              Verifica tu cuenta
+            </h1>
 
-              <span>
-                Comprobamos la conexión
-                para detectar VPN,
-                proxy y Tor.
-              </span>
+            <p>
+              Para acceder a ValenciaPD,
+              necesitamos comprobar tu
+              cuenta de Discord.
+            </p>
+
+            <div class="timer">
+              Este enlace caduca en 5 minutos
             </div>
 
-            <div class="feature">
-              <strong>
-                Acceso
-              </strong>
+            <div class="features">
 
-              <span>
-                Si todo está correcto,
-                recibirás automáticamente
-                el rol de Miembro.
-              </span>
+              <div class="feature">
+                <strong>
+                  Discord
+                </strong>
+
+                <span>
+                  Utilizamos la autenticación
+                  oficial de Discord.
+                </span>
+              </div>
+
+              <div class="feature">
+                <strong>
+                  Seguridad
+                </strong>
+
+                <span>
+                  Comprobamos VPN, proxy,
+                  Tor y riesgo de conexión.
+                </span>
+              </div>
+
+              <div class="feature">
+                <strong>
+                  Acceso
+                </strong>
+
+                <span>
+                  Si todo está correcto,
+                  recibirás automáticamente
+                  el rol de Miembro.
+                </span>
+              </div>
+
             </div>
 
-          </div>
+            <a
+              class="button"
+              href="${escapeHtml(discordUrl)}"
+            >
+              Continuar con Discord
+            </a>
 
-          <a
-            class="button"
-            href="${escapeHtml(discordUrl)}"
-          >
-            Continuar con Discord
-          </a>
-
-          <p style="font-size:13px;margin-top:22px">
-            La autenticación se realiza
-            mediante Discord. ValenciaPD
-            no recibe ni almacena tu
-            contraseña de Discord.
-          </p>
-        `,
-      ),
-    )
+            <p
+              style="
+                font-size:13px;
+                margin-top:22px
+              "
+            >
+              La contraseña nunca se comparte
+              con ValenciaPD. La autenticación
+              se realiza directamente con Discord.
+            </p>
+          `,
+        ),
+      )
   },
 )
 
-// -----------------------------------------------------
+// =====================================================
 // GET /callback
-// -----------------------------------------------------
+// =====================================================
 
 router.get(
   '/callback',
   async (req, res) => {
     try {
-
       const code =
         typeof req.query.code === 'string'
           ? req.query.code
           : null
 
-      const state =
+      const rawState =
         typeof req.query.state === 'string'
           ? req.query.state
           : null
@@ -454,7 +638,7 @@ router.get(
           : null
 
       // -------------------------------------------------
-      // DISCORD CANCELLED
+      // CANCELLED
       // -------------------------------------------------
 
       if (oauthError) {
@@ -474,29 +658,26 @@ router.get(
                 </h1>
 
                 <p>
-                  Has cancelado el acceso
+                  Has cancelado la autenticación
                   mediante Discord.
                 </p>
 
-                <a
-                  class="button orange"
-                  href="/verify"
-                >
-                  Volver a verificar
-                </a>
+                <p>
+                  Vuelve a Discord y genera
+                  una nueva solicitud.
+                </p>
               `,
             ),
           )
       }
 
       // -------------------------------------------------
-      // VALIDATE STATE
+      // BASIC VALIDATION
       // -------------------------------------------------
 
       if (
         !code ||
-        !state ||
-        !verifyState(state)
+        !rawState
       ) {
         return res
           .status(400)
@@ -505,45 +686,203 @@ router.get(
             page(
               'Solicitud inválida',
               `
-                <div class="badge">
-                  ERROR DE SEGURIDAD
-                </div>
-
-                <h1>
+                <h1 class="error">
                   Solicitud inválida
                 </h1>
 
                 <p>
-                  La sesión de verificación
-                  ha caducado o no es válida.
+                  El enlace de verificación
+                  no es válido.
                 </p>
-
-                <a
-                  class="button orange"
-                  href="/verify"
-                >
-                  Intentar de nuevo
-                </a>
               `,
             ),
           )
       }
 
       // -------------------------------------------------
-      // DISCORD TOKEN
+      // SPLIT OAUTH STATE + TICKET
+      // -------------------------------------------------
+
+      const separatorIndex =
+        rawState.lastIndexOf('|')
+
+      if (
+        separatorIndex === -1
+      ) {
+        return res
+          .status(400)
+          .type('html')
+          .send(
+            page(
+              'Solicitud inválida',
+              `
+                <h1 class="error">
+                  Solicitud inválida
+                </h1>
+
+                <p>
+                  El estado de seguridad
+                  no es válido.
+                </p>
+              `,
+            ),
+          )
+      }
+
+      const state =
+        rawState.slice(
+          0,
+          separatorIndex,
+        )
+
+      const ticket =
+        rawState.slice(
+          separatorIndex + 1,
+        )
+
+      // -------------------------------------------------
+      // VALIDATE STATE
+      // -------------------------------------------------
+
+      if (
+        !verifyState(state)
+      ) {
+        return res
+          .status(400)
+          .type('html')
+          .send(
+            page(
+              'Sesión caducada',
+              `
+                <h1 class="error">
+                  La sesión ha caducado
+                </h1>
+
+                <p>
+                  Vuelve a Discord y genera
+                  un nuevo enlace.
+                </p>
+              `,
+            ),
+          )
+      }
+
+      // -------------------------------------------------
+      // VALIDATE TICKET
+      // -------------------------------------------------
+
+      const ticketPayload =
+        verifyVerificationTicket(
+          ticket,
+        )
+
+      if (!ticketPayload) {
+        return res
+          .status(400)
+          .type('html')
+          .send(
+            page(
+              'Verificación caducada',
+              `
+                <h1 class="error">
+                  El enlace ha caducado
+                </h1>
+
+                <p>
+                  Vuelve a Discord y pulsa
+                  el botón de verificación
+                  nuevamente.
+                </p>
+              `,
+            ),
+          )
+      }
+
+      // -------------------------------------------------
+      // CHECK TICKET USED
+      // -------------------------------------------------
+
+      if (
+        await isTicketUsed(
+          ticketPayload.nonce,
+        )
+      ) {
+        return res
+          .status(400)
+          .type('html')
+          .send(
+            page(
+              'Enlace utilizado',
+              `
+                <h1 class="error">
+                  Este enlace ya fue utilizado
+                </h1>
+
+                <p>
+                  Vuelve a Discord y genera
+                  una nueva verificación.
+                </p>
+              `,
+            ),
+          )
+      }
+
+      // -------------------------------------------------
+      // EXCHANGE DISCORD CODE
       // -------------------------------------------------
 
       const tokens =
-        await exchangeCode(code)
+        await exchangeCode(
+          code,
+        )
 
       // -------------------------------------------------
-      // DISCORD USER
+      // GET DISCORD USER
       // -------------------------------------------------
 
       const user =
         await getDiscordUser(
           tokens.access_token,
         )
+
+      // -------------------------------------------------
+      // SAME DISCORD ACCOUNT
+      // -------------------------------------------------
+
+      if (
+        user.id !==
+        ticketPayload.discordId
+      ) {
+        return res
+          .status(403)
+          .type('html')
+          .send(
+            page(
+              'Cuenta incorrecta',
+              `
+                <div class="badge">
+                  SEGURIDAD
+                </div>
+
+                <h1 class="error">
+                  Cuenta de Discord incorrecta
+                </h1>
+
+                <p>
+                  Este enlace de verificación
+                  pertenece a otra cuenta
+                  de Discord.
+                </p>
+
+                <p>
+                  Vuelve a Discord y utiliza
+                  tu propio botón de
+                  verificación.
+                </p>
+              `,
+            ),
+          )
+      }
 
       // -------------------------------------------------
       // CLIENT IP
@@ -562,7 +901,7 @@ router.get(
         hashIp(ip)
 
       // -------------------------------------------------
-      // ALREADY VERIFIED DISCORD ACCOUNT
+      // ALREADY VERIFIED
       // -------------------------------------------------
 
       const existingDiscord =
@@ -571,7 +910,6 @@ router.get(
         )
 
       if (existingDiscord) {
-
         await addUserToGuild(
           tokens.access_token,
           user.id,
@@ -580,6 +918,17 @@ router.get(
         await addVerifiedRole(
           user.id,
         )
+
+        await markTicketUsed({
+          nonce:
+            ticketPayload.nonce,
+
+          discordId:
+            user.id,
+
+          usedAt:
+            new Date().toISOString(),
+        })
 
         return res
           .status(200)
@@ -607,8 +956,7 @@ router.get(
                 </p>
 
                 <p>
-                  Tu cuenta ya estaba
-                  registrada en ValenciaPD.
+                  Tu cuenta ya estaba registrada.
                   Hemos actualizado tu acceso
                   al servidor.
                 </p>
@@ -618,13 +966,17 @@ router.get(
                     ✓ Rol Miembro asignado
                   </strong>
                 </div>
+
+                <p>
+                  Ya puedes volver a Discord.
+                </p>
               `,
             ),
           )
       }
 
       // -------------------------------------------------
-      // MULTIACCOUNT CHECK
+      // MULTIACCOUNT
       // -------------------------------------------------
 
       const existingIp =
@@ -634,13 +986,15 @@ router.get(
 
       if (
         existingIp &&
-        existingIp.discordId !== user.id
+        existingIp.discordId !==
+          user.id
       ) {
-
         console.warn(
           'Possible multi-account detected:',
           {
-            discordId: user.id,
+            discordId:
+              user.id,
+
             previousDiscordId:
               existingIp.discordId,
           },
@@ -651,10 +1005,10 @@ router.get(
           .type('html')
           .send(
             page(
-              'Verificación no disponible',
+              'Cuenta no disponible',
               `
                 <div class="badge">
-                  VERIFICACIÓN
+                  SEGURIDAD
                 </div>
 
                 <h1 class="error">
@@ -663,16 +1017,16 @@ router.get(
                 </h1>
 
                 <p>
-                  Nuestro sistema de seguridad
-                  ha detectado que esta conexión
-                  ya está asociada a otra cuenta
-                  de ValenciaPD.
+                  Nuestro sistema ha detectado
+                  que esta conexión ya está
+                  asociada a otra cuenta
+                  verificada en ValenciaPD.
                 </p>
 
                 <p>
                   Si crees que se trata de un
-                  error, contacta con el equipo
-                  de administración de ValenciaPD.
+                  error, contacta con la
+                  administración.
                 </p>
               `,
             ),
@@ -680,36 +1034,54 @@ router.get(
       }
 
       // -------------------------------------------------
-      // IPQS CHECK
+      // IPQUALITYSCORE
       // -------------------------------------------------
 
       const ipqs =
         await checkIP(
           ip,
-          req.headers['user-agent'] ||
-            undefined,
-          req.headers['accept-language'] ||
-            undefined,
+          typeof req.headers['user-agent'] ===
+            'string'
+            ? req.headers['user-agent']
+            : undefined,
+
+          typeof req.headers['accept-language'] ===
+            'string'
+            ? req.headers['accept-language']
+            : undefined,
         )
 
       console.log(
         'IPQS verification:',
         {
-          discordId: user.id,
-          proxy: ipqs.proxy,
-          vpn: ipqs.vpn,
-          tor: ipqs.tor,
+          discordId:
+            user.id,
+
+          proxy:
+            ipqs.proxy,
+
+          vpn:
+            ipqs.vpn,
+
+          tor:
+            ipqs.tor,
+
           active_vpn:
             ipqs.active_vpn,
+
           active_tor:
             ipqs.active_tor,
+
           fraud_score:
             ipqs.fraud_score,
+
+          country:
+            ipqs.country_code,
         },
       )
 
       // -------------------------------------------------
-      // VPN / PROXY / TOR
+      // VPN / TOR
       // -------------------------------------------------
 
       if (
@@ -718,7 +1090,6 @@ router.get(
         ipqs.active_vpn ||
         ipqs.active_tor
       ) {
-
         return res
           .status(403)
           .type('html')
@@ -735,22 +1106,15 @@ router.get(
                 </h1>
 
                 <p>
-                  ValenciaPD no permite
-                  verificaciones realizadas
+                  Hemos detectado una conexión
                   mediante VPN o Tor.
                 </p>
 
                 <p>
                   Desactiva la VPN o conexión
-                  anónima e inténtalo de nuevo.
+                  anónima y vuelve a iniciar
+                  la verificación desde Discord.
                 </p>
-
-                <a
-                  class="button orange"
-                  href="/verify"
-                >
-                  Intentar de nuevo
-                </a>
               `,
             ),
           )
@@ -761,7 +1125,6 @@ router.get(
       // -------------------------------------------------
 
       if (ipqs.proxy) {
-
         return res
           .status(403)
           .type('html')
@@ -783,17 +1146,9 @@ router.get(
                 </p>
 
                 <p>
-                  Desactiva el proxy e intenta
-                  realizar la verificación
-                  nuevamente.
+                  Desactiva el proxy y vuelve
+                  a iniciar la verificación.
                 </p>
-
-                <a
-                  class="button orange"
-                  href="/verify"
-                >
-                  Intentar de nuevo
-                </a>
               `,
             ),
           )
@@ -808,7 +1163,6 @@ router.get(
           'number' &&
         ipqs.fraud_score >= 90
       ) {
-
         return res
           .status(403)
           .type('html')
@@ -821,8 +1175,7 @@ router.get(
                 </div>
 
                 <h1 class="error">
-                  No hemos podido completar
-                  la verificación
+                  Verificación rechazada
                 </h1>
 
                 <p>
@@ -832,10 +1185,9 @@ router.get(
                 </p>
 
                 <p>
-                  Si utilizas una conexión
-                  normal y consideras que se
-                  trata de un error, contacta
-                  con la administración.
+                  Si utilizas una conexión normal
+                  y consideras que es un error,
+                  contacta con la administración.
                 </p>
               `,
             ),
@@ -843,7 +1195,7 @@ router.get(
       }
 
       // -------------------------------------------------
-      // ADD USER TO SERVER
+      // ADD TO GUILD
       // -------------------------------------------------
 
       await addUserToGuild(
@@ -860,11 +1212,12 @@ router.get(
       )
 
       // -------------------------------------------------
-      // SAVE VERIFICATION
+      // SAVE MEMBER
       // -------------------------------------------------
 
       await saveVerification({
-        discordId: user.id,
+        discordId:
+          user.id,
 
         username:
           user.global_name ||
@@ -873,6 +1226,21 @@ router.get(
         ipHash,
 
         verifiedAt:
+          new Date().toISOString(),
+      })
+
+      // -------------------------------------------------
+      // BURN TICKET
+      // -------------------------------------------------
+
+      await markTicketUsed({
+        nonce:
+          ticketPayload.nonce,
+
+        discordId:
+          user.id,
+
+        usedAt:
           new Date().toISOString(),
       })
 
@@ -906,29 +1274,40 @@ router.get(
               </p>
 
               <p>
-                Tu cuenta ha sido verificada
-                correctamente.
+                Todas las comprobaciones
+                se han completado correctamente.
               </p>
 
               <div class="status">
+
                 <strong>
                   ✓ Cuenta Discord verificada
                 </strong>
+
                 <br><br>
 
                 <strong>
                   ✓ Conexión comprobada
                 </strong>
+
+                <br><br>
+
+                <strong>
+                  ✓ Comprobación de seguridad
+                </strong>
+
                 <br><br>
 
                 <strong>
                   ✓ Acceso al servidor concedido
                 </strong>
+
                 <br><br>
 
                 <strong>
                   ✓ Rol Miembro asignado
                 </strong>
+
               </div>
 
               <p>
@@ -939,7 +1318,6 @@ router.get(
         )
 
     } catch (error) {
-
       console.error(
         'Verification error:',
         error,
@@ -966,15 +1344,15 @@ router.get(
               </p>
 
               <p>
-                Inténtalo de nuevo en unos
-                minutos.
+                Inténtalo de nuevo desde
+                Discord.
               </p>
 
               <a
                 class="button orange"
-                href="/verify"
+                href="/"
               >
-                Volver a verificar
+                Volver
               </a>
             `,
           ),
