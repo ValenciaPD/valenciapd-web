@@ -97,6 +97,68 @@ app.get('/healthz', (req, res) => {
   })
 })
 
+app.get('/test-transcript', async (req, res) => {
+  try {
+    const id = generateTranscriptId()
+
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Transcript de prueba</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              max-width: 900px;
+              margin: 40px auto;
+              padding: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Transcript de prueba</h1>
+          <p>Si estás viendo esta página, el sistema de transcripts funciona correctamente.</p>
+          <p>ID: <strong>${id}</strong></p>
+        </body>
+      </html>
+    `
+
+    const blob = await put(`transcripts/${id}.html`, html, {
+      access: 'public',
+      contentType: 'text/html; charset=utf-8',
+      addRandomSuffix: false,
+    })
+
+    res.type('html').send(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Test OK</title>
+        </head>
+        <body>
+          <h1>Transcript creado correctamente</h1>
+          <p>ID: <strong>${id}</strong></p>
+          <p>
+            <a href="https://transcripts.valenciapd.es/${id}" target="_blank">
+              Abrir transcript
+            </a>
+          </p>
+          <p>Blob: ${blob.url}</p>
+        </body>
+      </html>
+    `)
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({
+      error: 'Failed to create test transcript',
+    })
+  }
+})
+
+
 // -----------------------------------------------------
 // CREATE TRANSCRIPT
 // POST /api/transcripts
