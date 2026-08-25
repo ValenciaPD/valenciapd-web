@@ -54,6 +54,7 @@ async function writeJson<T>(
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
+      allowOverwrite: true,
     },
   )
 }
