@@ -76,8 +76,8 @@ app.get('/callback', async (req, res, next) => {
     const user = await getDiscordUser(tokens.access_token)
     if (!(await isGuildMember(user.id))) await addUserToGuild(tokens.access_token, user.id)
     const session = createDiscordSession(user)
-    res.setHeader('Set-Cookie', `vpd_discord=${session}; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
-    return res.redirect('/?discord=connected')
+    res.setHeader('Set-Cookie', `vpd_discord=${session}; Domain=.valenciapd.es; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
+    return res.redirect('https://www.valenciapd.es/')
   } catch (error) {
     console.error('Discord connection error:', error)
     return res.status(500).type('html').send('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discord · ValenciaPD</title><link rel="stylesheet" href="/site/pcs.css"></head><body><main class="page-hero"><div class="container"><span class="eyebrow">Discord</span><h1>No hemos podido conectar la cuenta</h1><p class="page-lead">El servicio de Discord ha rechazado temporalmente la solicitud. Inténtalo de nuevo desde Valencia PD.</p><a class="btn btn-primary btn-lg" href="/discord">Intentar de nuevo</a></div></main></body></html>')
@@ -91,14 +91,21 @@ app.get('/api/discord/me', (req, res) => {
 })
 
 app.post('/discord/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', 'vpd_discord=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
+  res.setHeader('Set-Cookie', 'vpd_discord=; Domain=.valenciapd.es; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
   return res.status(204).end()
 })
 
-const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/legal/privacidad', '/legal/terminos']
+const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/guia-inicio', '/estado', '/legal/privacidad', '/legal/terminos']
 app.get(siteRoutes, (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'site', 'index.html'))
 })
+
+// Official short links
+app.get('/instagram', (_req, res) => res.redirect('https://www.instagram.com/valenciapd_/'))
+app.get('/tiktok', (_req, res) => res.redirect('https://www.tiktok.com/@valenciapd_'))
+app.get('/twitch', (_req, res) => res.redirect('https://www.twitch.tv/valenciapd'))
+app.get('/fivem', (_req, res) => res.redirect('https://servers.fivem.net/servers/detail/gaa58qq'))
+app.get('/desbaneos', (_req, res) => res.redirect('https://discord.gg/pGXCRVg7yF'))
 
 app.get('/about', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'components', 'about.htm'))
