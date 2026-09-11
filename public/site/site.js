@@ -5,7 +5,7 @@
   const TIKTOK = 'https://www.tiktok.com/@valenciapd_';
   const INSTAGRAM = 'http://instagram.com/valenciapd_/';
   const TWITCH = 'https://www.twitch.tv/valenciapd';
-  const LOGO = '/logo.png';
+  const LOGO = '/site/valenciapd-logo.svg';
   // The ZIP contains asset manifests for these two images, but not the image bytes.
   // If you add public/gal1.png and public/gal2.png later, the site will use them automatically.
   const GALLERY = ['/gal1.png', '/gal2.png'];
@@ -134,6 +134,44 @@
   const renderer = pages[path] || (() => `<main>${pageHero('404','Página no encontrada','La página que buscas no existe.')}</main>`);
   app.className = '';
   app.innerHTML = header() + renderer() + footer();
+
+  // Custom desktop cursor: a soft grey glass circle that grows over clickable controls.
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('custom-cursor-enabled');
+    const cursor = document.createElement('div');
+    cursor.id = 'cursor-glass';
+    cursor.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(cursor);
+
+    let targetX = -100, targetY = -100, x = targetX, y = targetY;
+    let raf = 0;
+    const renderCursor = () => {
+      x += (targetX - x) * 0.22;
+      y += (targetY - y) * 0.22;
+      cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      raf = requestAnimationFrame(renderCursor);
+    };
+    const move = (event) => {
+      targetX = event.clientX;
+      targetY = event.clientY;
+      cursor.classList.add('visible');
+    };
+    const over = (event) => {
+      const clickable = event.target.closest('a, button, [role="button"], input[type="submit"], input[type="button"], summary');
+      cursor.classList.toggle('hover', Boolean(clickable));
+    };
+    const press = () => cursor.classList.add('press');
+    const release = () => cursor.classList.remove('press');
+    const leave = () => cursor.classList.remove('visible');
+
+    window.addEventListener('mousemove', move, { passive: true });
+    window.addEventListener('mouseover', over, { passive: true });
+    window.addEventListener('mousedown', press, { passive: true });
+    window.addEventListener('mouseup', release, { passive: true });
+    document.documentElement.addEventListener('mouseleave', leave, { passive: true });
+    renderCursor();
+    window.addEventListener('beforeunload', () => cancelAnimationFrame(raf), { once: true });
+  }
 
   // Header scroll + mobile menu
   const headerEl = document.getElementById('site-header');
