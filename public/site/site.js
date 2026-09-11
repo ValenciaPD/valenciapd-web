@@ -1,8 +1,9 @@
 (() => {
   const DISCORD = 'https://discord.gg/valenciapd';
+  const UNBAN_DISCORD = 'https://discord.gg/pGXCRVg7yF';
   const DISCORD_CONNECT = '/discord';
-  const SERVER_CONNECT = 'https://cfx.re/join/qqqb8mz';
-  const SERVER_IP = 'connect cfx.re/join/qqqb8mz';
+  const SERVER_CONNECT = 'https://cfx.re/join/gaa58qq';
+  const SERVER_IP = 'connect cfx.re/join/gaa58qq';
   const FIVEM = 'https://servers.fivem.net/servers/detail/gaa58qq';
   const TIKTOK = 'https://www.tiktok.com/@valenciapd_';
   const INSTAGRAM = 'http://instagram.com/valenciapd_/';
@@ -26,7 +27,7 @@
 
   function header() {
     return `<header class="site-header" id="site-header"><div class="container header-inner">
-      <a href="/" class="brand" aria-label="Inicio Valencia PD"><img src="${LOGO}" alt="" class="brand-logo"><span class="brand-text">VALENCIA PD</span></a>
+      <a href="/" class="brand" aria-label="Inicio Valencia PD"><img src="${LOGO}" alt="Valencia PD" class="brand-logo"><span class="brand-text">VALENCIA PD</span></a>
       <nav class="main-nav" id="main-nav" aria-label="Navegación principal">
         ${navLink('/servidor','El servidor')}
         ${navLink('/galeria','Galería')}
@@ -35,14 +36,21 @@
         <a class="nav-play" href="${SERVER_CONNECT}">▶ Jugar</a>
       </nav>
       <div class="header-actions">
-        <a href="${DISCORD_CONNECT}" class="btn btn-discord">${icon('discord')} Conectar Discord</a>
+        <div id="discord-account-slot" class="discord-account-slot"><a href="${DISCORD_CONNECT}" class="btn btn-discord discord-connect-btn">${icon('discord')} Conectar Discord</a></div>
         <button class="nav-toggle" id="nav-toggle" aria-label="Abrir el menú" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       </div>
     </div></header>`;
   }
 
   function footer() {
-    return `<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand"><img src="${LOGO}" alt="Valencia PD" class="brand-logo footer-logo"><div><strong>VALENCIA PD</strong><p>Comunidad de roleplay FivePD ambientada en la Comunidad Valenciana.</p><div class="footer-socials"><a href="${DISCORD_CONNECT}" class="social-pill">${icon('discord')} Discord</a><a href="${TWITCH}" target="_blank" rel="noopener" class="social-pill">${icon('twitch')} Twitch</a><a href="${TIKTOK}" target="_blank" rel="noopener" class="social-pill">${icon('tiktok')} TikTok</a><a href="${INSTAGRAM}" target="_blank" rel="noopener" class="social-pill">${icon('instagram')} Instagram</a></div></div></div><nav class="footer-nav" aria-label="Enlaces del pie de página"><div class="footer-col"><h4>Servidor</h4><a href="/servidor">Presentación</a><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="${FIVEM}" target="_blank" rel="noopener">Servidor FiveM</a></div><div class="footer-col"><h4>Comunidad</h4><a href="${DISCORD_CONNECT}">Conectar Discord</a><a href="${DISCORD}" target="_blank" rel="noopener">Discord principal</a><a href="/verify">Verificación</a></div><div class="footer-col"><h4>Legal</h4><a href="/legal/privacidad">Política de privacidad</a><a href="/legal/terminos">Términos y condiciones</a></div></nav></div><div class="footer-bottom"><div class="container"><p>© ${new Date().getFullYear()} Valencia PD. Proyecto de roleplay sin ánimo de lucro, no afiliado a Rockstar Games ni a ningún cuerpo policial real.</p><span>Valencia, España</span></div></div></footer>`;
+    return `<footer class="site-footer"><div class="container footer-inner">
+      <div class="footer-brand"><img src="${LOGO}" alt="Valencia PD" class="brand-logo footer-logo"><div><strong>VALENCIA PD</strong><p>Comunidad de roleplay FivePD ambientada en la Comunidad Valenciana.</p></div></div>
+      <nav class="footer-nav" aria-label="Enlaces del pie de página">
+        <div class="footer-col"><h4>Servidor</h4><a href="/servidor">Presentación</a><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="${FIVEM}" target="_blank" rel="noopener">Servidor FiveM</a></div>
+        <div class="footer-col"><h4>Comunidad</h4><a href="${DISCORD_CONNECT}">Conectar Discord</a><a href="${UNBAN_DISCORD}" target="_blank" rel="noopener">Desbaneos</a></div>
+        <div class="footer-col"><h4>Legal</h4><a href="/legal/privacidad">Política de privacidad</a><a href="/legal/terminos">Términos y condiciones</a></div>
+      </nav>
+    </div><div class="footer-bottom"><div class="container"><p>© ${new Date().getFullYear()} Valencia PD. Proyecto de roleplay sin ánimo de lucro, no afiliado a Rockstar Games ni a ningún cuerpo policial real.</p><span>Valencia, España</span></div></div></footer>`;
   }
 
   function assetImg(src, alt, cls='') {
@@ -62,7 +70,7 @@
   }
 
   function communityHub() {
-    return `<section class="section section-alt community-hub"><div class="container"><div class="section-head"><span class="eyebrow">Comunidad en directo</span><h2>Discord y servidor</h2><p class="section-lead">Mira quién está conectado en Discord y accede directamente a Valencia PD en FiveM.</p></div><div class="community-grid" data-reveal><article class="card discord-widget-card"><div class="widget-card-head"><div><span class="eyebrow">Discord</span><h3>Comunidad online</h3><p>Canales, soporte y actividad del servidor.</p></div><a href="${DISCORD_CONNECT}" class="btn btn-discord">${icon('discord')} Conectar</a></div><div class="discord-frame-wrap"><iframe title="Discord Valencia PD" src="https://discord.com/widget?id=1537170783896342663&amp;theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe></div></article><article class="card fivem-card"><div class="fivem-visual"><div class="fivem-mark">F</div><div><span class="eyebrow">FiveM</span><h3>Valencia PD</h3><p>Conecta al servidor y entra en servicio.</p></div></div><div class="fivem-info"><span>Servidor oficial</span><strong>gaa58qq</strong><small>Consulta el servidor en la lista oficial de FiveM.</small></div><a href="${FIVEM}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">${icon('fivem')} Ver servidor en FiveM</a><a href="${SERVER_CONNECT}" class="btn btn-ghost btn-lg">▶ Abrir conexión</a></article></div></div></section>`;
+    return `<section class="section section-alt community-hub"><div class="container"><div class="section-head"><span class="eyebrow">Comunidad en directo</span><h2>Discord y servidor</h2><p class="section-lead">Mira quién está conectado en Discord y accede directamente a Valencia PD en FiveM.</p></div><div class="community-grid" data-reveal><article class="card discord-widget-card"><div class="widget-card-head"><div><span class="eyebrow">Discord</span><h3>Comunidad online</h3><p>Canales, soporte y actividad del servidor.</p></div><div class="widget-discord-auth" data-discord-auth></div></div><div class="discord-frame-wrap"><iframe title="Discord Valencia PD" src="https://discord.com/widget?id=1537170783896342663&amp;theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe></div></article><article class="card fivem-card"><div class="fivem-visual"><div class="fivem-mark">F</div><div><span class="eyebrow">FiveM</span><h3>Valencia PD</h3><p>Conecta al servidor y entra en servicio.</p></div></div><div class="fivem-info"><span>Servidor oficial</span><strong>gaa58qq</strong><small>Consulta el servidor en la lista oficial de FiveM.</small></div><a href="${FIVEM}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">${icon('fivem')} Ver servidor en FiveM</a><a href="${SERVER_CONNECT}" class="btn btn-ghost btn-lg">▶ Abrir conexión</a></article></div></div></section>`;
   }
 
   function home() {
@@ -72,7 +80,11 @@
         <article class="card feature-card"><span class="feature-icon">◷</span><h3>Servicios de emergencia completos</h3><p>Policía Nacional, Guardia Civil, Policía Local, SAMU y Bomberos con jerarquía y equipamiento propios.</p></article>
         <article class="card feature-card"><span class="feature-icon">▣</span><h3>Tres AOP distintos</h3><p>Valencia Centro, Torrent y Burjassot: el rol cambia de escenario según la actividad del servidor.</p></article>
       </div></div></section>
-      <section class="section section-alt"><div class="container"><div class="section-head"><span class="eyebrow">Conectar</span><h2>Entra en el servidor</h2><p class="section-lead">Abre FiveM y usa la IP directa: <strong>${SERVER_IP}</strong></p></div></div></section>
+      <section class="section section-alt"><div class="container"><div class="section-head"><span class="eyebrow">Todo lo que necesitas</span><h2>Una comunidad hecha para quedarse</h2><p class="section-lead">Información clara, soporte rápido y un entorno preparado para disfrutar del rol.</p></div><div class="grid grid-3" data-reveal>
+        <article class="card feature-card feature-card-soft"><span class="feature-icon">◉</span><h3>Comunidad activa</h3><p>Discord como punto central para avisos, soporte, organización de patrullas y actividad diaria.</p><a class="text-link" href="${DISCORD}">Entrar al Discord →</a></article>
+        <article class="card feature-card feature-card-soft"><span class="feature-icon">⌁</span><h3>Soporte y desbaneos</h3><p>¿Tienes una sanción o necesitas ayuda? Accede al canal correspondiente y abre tu solicitud.</p><a class="text-link" href="${UNBAN_DISCORD}" target="_blank" rel="noopener">Solicitar revisión →</a></article>
+        <article class="card feature-card feature-card-soft"><span class="feature-icon">F</span><h3>Conexión directa</h3><p>Abre FiveM con un clic y entra directamente al servidor Valencia PD.</p><a class="text-link" href="${SERVER_CONNECT}">Jugar ahora →</a></article>
+      </div></div></section>
       <section class="section"><div class="container"><div class="cta-banner card" data-reveal><div><h2>¿Listo para vestir el uniforme?</h2><p>Crea tu personaje, únete a una patrulla y vive el rol policial como nunca.</p></div><div class="cta-banner-actions"><a href="${DISCORD}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Unirse ahora</a><a href="/servidor" class="btn btn-ghost btn-lg">Saber más</a></div></div></div></section>
     </main>`;
   }
@@ -132,46 +144,61 @@
   function terminos() { return `<main>${pageHero('Legal','Términos y condiciones','Reglas de uso de la web y de los servicios de Valencia PD.')}<section class="section"><div class="container prose-block legal-page"><article class="rule-section"><h2>1. Aceptación</h2><p class="prose">Al usar la web o cualquiera de sus servicios aceptas estas condiciones y la normativa de la comunidad.</p></article><article class="rule-section"><h2>2. Uso permitido</h2><ul><li>Utiliza los servicios de forma lícita, respetuosa y sin perjudicar a otros usuarios.</li><li>No interfieras con la infraestructura ni intentes obtener acceso no autorizado.</li><li>No suplantes a otros usuarios, al staff o a Valencia PD.</li></ul></article><article class="rule-section"><h2>3. Discord y FiveM</h2><p class="prose">Discord, FiveM y sus sistemas asociados pueden imponer requisitos adicionales. El acceso puede limitarse o retirarse por incumplimiento de la normativa.</p></article><article class="rule-section"><h2>4. Disponibilidad</h2><p class="prose">Trabajamos para mantener los servicios disponibles, pero pueden existir mantenimientos, errores o interrupciones de terceros.</p></article><article class="rule-section"><h2>5. Propiedad y marcas</h2><p class="prose">Los recursos propios de Valencia PD pertenecen a sus titulares. Las marcas de terceros pertenecen a sus respectivos propietarios.</p></article><article class="rule-section"><h2>6. Cambios</h2><p class="prose">Estas condiciones pueden actualizarse. La versión publicada en esta página será la vigente desde su publicación.</p></article><div class="legal-note"><strong>Nota:</strong> estos términos son una base informativa y deben revisarse profesionalmente antes de utilizarlos como texto legal definitivo.</div></div></section></main>`; }
 
   const pages = {'/':home,'/servidor':servidor,'/galeria':galeria,'/servicios':servicios,'/normativa':normativa,'/legal/privacidad':privacidad,'/legal/terminos':terminos};
-  const renderer = pages[path] || (() => `<main>${pageHero('404','404','Esta página no existe o ya no está disponible.')}<section class="section"><div class="container"><div class="not-found card"><div class="not-found-code">404</div><h2>La ruta que buscas no existe</h2><p class="section-lead">Puede que hayas seguido un enlace antiguo o escrito una dirección incorrecta.</p><div class="cta-banner-actions"><a href="/" class="btn btn-primary btn-lg">Volver al inicio</a><a href="/normativa" class="btn btn-ghost btn-lg">Ver la normativa</a></div></div></div></section></main>`);
+  const titles = {
+    '/': 'Inicio | ValenciaPD',
+    '/servidor': 'El servidor | ValenciaPD',
+    '/galeria': 'Galería | ValenciaPD',
+    '/servicios': 'Servicios | ValenciaPD',
+    '/normativa': 'Normativa | ValenciaPD',
+    '/legal/privacidad': 'Política de privacidad | ValenciaPD',
+    '/legal/terminos': 'Términos y condiciones | ValenciaPD',
+  };
+  const renderer = pages[path] || (() => `<main><section class="section not-found-section"><div class="container"><div class="not-found-card"><span class="eyebrow">Página no encontrada</span><div class="not-found-code">404</div><h1>Esta página no existe</h1><p>La dirección que has solicitado no está disponible o ha cambiado.</p><div class="not-found-actions"><a href="/" class="btn btn-primary btn-lg">Volver al inicio</a><a href="/normativa" class="btn btn-ghost btn-lg">Ver normativa</a></div></div></div></section></main>`);
+  document.title = titles[path] || 'Página no encontrada | ValenciaPD';
   app.className = '';
   app.innerHTML = header() + renderer() + footer();
 
-  // Custom desktop cursor: a soft grey glass circle that grows over clickable controls.
-  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // Custom desktop cursor. The animation survives BFCache/back navigation without freezing.
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1024px)');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (finePointer.matches && !reducedMotion.matches) {
     document.documentElement.classList.add('custom-cursor-enabled');
-    const cursor = document.createElement('div');
-    cursor.id = 'cursor-glass';
-    cursor.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(cursor);
-
-    let targetX = -100, targetY = -100, x = targetX, y = targetY;
-    let raf = 0;
+    let cursor = document.getElementById('cursor-glass');
+    if (!cursor) {
+      cursor = document.createElement('div');
+      cursor.id = 'cursor-glass';
+      cursor.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(cursor);
+    }
+    let targetX = -100, targetY = -100, x = targetX, y = targetY, raf = 0;
     const renderCursor = () => {
-      x += (targetX - x) * 0.22;
-      y += (targetY - y) * 0.22;
-      cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      x += (targetX - x) * 0.24;
+      y += (targetY - y) * 0.24;
+      cursor.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
       raf = requestAnimationFrame(renderCursor);
     };
     const move = (event) => {
       targetX = event.clientX;
       targetY = event.clientY;
       cursor.classList.add('visible');
+      const clickable = event.target instanceof Element && event.target.closest('a, button, [role="button"], input[type="submit"], input[type="button"], summary, .discord-user-trigger');
+      cursor.classList.toggle('hover', Boolean(clickable));
     };
     const over = (event) => {
-      const clickable = event.target.closest('a, button, [role="button"], input[type="submit"], input[type="button"], summary');
+      const clickable = event.target instanceof Element && event.target.closest('a, button, [role="button"], input[type="submit"], input[type="button"], summary, .discord-user-trigger');
       cursor.classList.toggle('hover', Boolean(clickable));
     };
     const press = () => cursor.classList.add('press');
     const release = () => cursor.classList.remove('press');
     const leave = () => cursor.classList.remove('visible');
-
-    window.addEventListener('mousemove', move, { passive: true });
-    window.addEventListener('mouseover', over, { passive: true });
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerover', over, { passive: true });
     window.addEventListener('mousedown', press, { passive: true });
     window.addEventListener('mouseup', release, { passive: true });
+    window.addEventListener('blur', release, { passive: true });
     document.documentElement.addEventListener('mouseleave', leave, { passive: true });
+    window.addEventListener('pageshow', () => { targetX = -100; targetY = -100; x = targetX; y = targetY; cursor.classList.remove('press'); if (!raf) raf = requestAnimationFrame(renderCursor); }, { passive: true });
     renderCursor();
-    window.addEventListener('beforeunload', () => cancelAnimationFrame(raf), { once: true });
   }
 
   // Header scroll + mobile menu
@@ -205,9 +232,50 @@
   lightbox?.addEventListener('click',e=>{if(e.target===lightbox)lightbox.classList.remove('open')});
   document.addEventListener('keydown',e=>{if(!lightbox?.classList.contains('open'))return;if(e.key==='Escape')lightbox.classList.remove('open');if(e.key==='ArrowLeft')showLight(lightIndex-1);if(e.key==='ArrowRight')showLight(lightIndex+1)});
 
+  // Discord session UI
+  async function hydrateDiscordAccount() {
+    const slots = [...document.querySelectorAll('[data-discord-auth], #discord-account-slot')];
+    if (!slots.length) return;
+    try {
+      const response = await fetch('/api/discord/me', { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+      const data = await response.json();
+      slots.forEach(slot => {
+        if (!data.authenticated) {
+          slot.innerHTML = `<a href="${DISCORD_CONNECT}" class="btn btn-discord discord-connect-btn">${icon('discord')} Conectar Discord</a>`;
+          return;
+        }
+        const avatar = data.avatarUrl ? `<img src="${data.avatarUrl}" alt="" class="discord-avatar" referrerpolicy="no-referrer">` : icon('discord');
+        slot.innerHTML = `<div class="discord-account"><button type="button" class="discord-user-trigger" data-discord-menu aria-expanded="false">${avatar}<span class="discord-user-name">${escapeHtml(data.displayName)}</span><span class="discord-chevron">⌄</span></button><button type="button" class="discord-logout" data-discord-logout aria-label="Cerrar sesión de Discord" title="Cerrar sesión">${logoutIcon()}</button><div class="discord-account-menu" data-discord-menu-panel hidden><div class="discord-menu-head">${avatar}<div><strong>${escapeHtml(data.displayName)}</strong><span>Discord conectado</span></div></div><button type="button" class="discord-menu-item">Mi cuenta <small>Próximamente</small></button><button type="button" class="discord-menu-item" data-discord-logout>Cerrar sesión</button></div></div>`;
+        bindDiscordSlot(slot);
+      });
+    } catch {
+      slots.forEach(slot => { if (!slot.innerHTML.trim()) slot.innerHTML = `<a href="${DISCORD_CONNECT}" class="btn btn-discord discord-connect-btn">${icon('discord')} Conectar Discord</a>`; });
+    }
+  }
+  function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function logoutIcon() { return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 19V5a2 2 0 0 0-2-2h-6"/></svg>`; }
+  function bindDiscordSlot(slot) {
+    const trigger = slot.querySelector('[data-discord-menu]');
+    const panel = slot.querySelector('[data-discord-menu-panel]');
+    if (!trigger || !panel) return;
+    trigger.addEventListener('click', event => {
+      event.stopPropagation();
+      const willOpen = panel.hidden;
+      document.querySelectorAll('[data-discord-menu-panel]').forEach(p => { p.hidden = true; p.closest('.discord-account')?.querySelector('[data-discord-menu]')?.setAttribute('aria-expanded','false'); });
+      panel.hidden = !willOpen;
+      trigger.setAttribute('aria-expanded', String(willOpen));
+    });
+    slot.querySelectorAll('[data-discord-logout]').forEach(button => button.addEventListener('click', async event => {
+      event.stopPropagation();
+      try { await fetch('/discord/logout', { method: 'POST', credentials: 'same-origin' }); } finally { window.location.reload(); }
+    }));
+  }
+  document.addEventListener('click', () => document.querySelectorAll('[data-discord-menu-panel]').forEach(p => { p.hidden = true; p.closest('.discord-account')?.querySelector('[data-discord-menu]')?.setAttribute('aria-expanded','false'); }), true);
+  hydrateDiscordAccount();
+
   const showDevtoolsNotice = () => { let toast=document.getElementById('devtools-toast'); if(!toast){ toast=document.createElement('div'); toast.id='devtools-toast'; toast.innerHTML='<strong>Acción no disponible</strong><span>Las herramientas de desarrollador están deshabilitadas en este sitio.</span>'; document.body.appendChild(toast); } toast.classList.add('show'); clearTimeout(window.__devtoolsToastTimer); window.__devtoolsToastTimer=window.setTimeout(()=>toast.classList.remove('show'),3200); };
   document.addEventListener('keydown',e=>{ const k=String(e.key).toLowerCase(); const blocked=e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['i','j','c'].includes(k))||(e.ctrlKey&&k==='u'); if(blocked){e.preventDefault();e.stopPropagation();showDevtoolsNotice();}},true);
-  const loader=document.getElementById('site-loader'); if(loader){window.setTimeout(()=>{loader.classList.add('is-hidden');window.setTimeout(()=>loader.remove(),400)},650)}
+  const loader=document.getElementById('site-loader'); if(loader){ const hideLoader=()=>{loader.classList.add('is-hidden');window.setTimeout(()=>loader.remove(),400)}; window.setTimeout(hideLoader,650); window.addEventListener('pageshow',()=>{if(document.getElementById('site-loader'))window.setTimeout(hideLoader,180)},{once:true}); }
 
   // Reveal animation used by the supplied design.
   const reveals=[...document.querySelectorAll('[data-reveal]')];
