@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Valencia PD</title>
+  <desc id="desc">Escudo de Valencia PD</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4C84A"/><stop offset="1" stop-color="#B98A16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="#0a0c10" stroke="url(#g)" stroke-width="4"/>
+  <path d="M64 17 96 29v28c0 23-13 39-32 51C45 96 32 80 32 57V29Z" fill="#151922" stroke="#e6e9ed" stroke-width="2.5"/>
+  <path d="M64 27 86 35v21c0 16-8 28-22 38-14-10-22-22-22-38V35Z" fill="#0b0d12" stroke="#8f969f" stroke-width="1.5"/>
+  <text x="64" y="58" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="800" fill="#F4C84A">VPD</text>
+  <path d="M48 68h32" stroke="#e6e9ed" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="64" cy="78" r="4" fill="#F4C84A"/>
+</svg>
