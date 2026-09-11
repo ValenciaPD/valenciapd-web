@@ -61,7 +61,6 @@ app.get('/discord', (_req, res) => {
   return res.redirect(getDiscordOAuthUrl(state))
 })
 
-// Direct Discord connection from the website. Verification callbacks keep using the existing handler below.
 app.get('/callback', async (req, res, next) => {
   const rawState = typeof req.query.state === 'string' ? req.query.state : ''
   if (!rawState.startsWith('discord|')) return next()
@@ -95,12 +94,11 @@ app.post('/discord/logout', (_req, res) => {
   return res.status(204).end()
 })
 
-const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/guia-inicio', '/estado', '/legal/privacidad', '/legal/terminos']
+const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/guia-inicio', '/estado', '/postular', '/legal/privacidad', '/legal/terminos']
 app.get(siteRoutes, (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'site', 'index.html'))
 })
 
-// Official short links
 app.get('/instagram', (_req, res) => res.redirect('https://www.instagram.com/valenciapd_/'))
 app.get('/tiktok', (_req, res) => res.redirect('https://www.tiktok.com/@valenciapd_'))
 app.get('/twitch', (_req, res) => res.redirect('https://www.twitch.tv/valenciapd'))
@@ -122,7 +120,6 @@ app.get('/healthz', (_req, res) => {
   })
 })
 
-// Keep the existing verification/transcript backend untouched.
 app.use(verificationRoutes)
 app.use(transcriptRoutes)
 
