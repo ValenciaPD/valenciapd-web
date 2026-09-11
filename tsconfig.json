@@ -7,5 +7,11 @@
     "rootDir": ".",
     "esModuleInterop": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": [
+    "src/routes/*.tsx",
+    "src/components/site/**/*.tsx",
+    "src/lib/site.ts",
+    "src/assets/**/*.json"
+  ]
 }
