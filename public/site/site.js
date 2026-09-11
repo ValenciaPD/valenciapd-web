@@ -10,8 +10,6 @@
   const INSTAGRAM = 'http://instagram.com/valenciapd_/';
   const TWITCH = 'https://www.twitch.tv/valenciapd';
   const LOGO = '/site/valenciapd-logo.png';
-  // The ZIP contains asset manifests for these two images, but not the image bytes.
-  // If you add public/gal1.png and public/gal2.png later, the site will use them automatically.
   const GALLERY = ['/gal1.png', '/gal2.png', '/gal3.png', '/gallery/gal4.png', '/gallery/gal5.png', '/gallery/gal6.png', '/gallery/gal7.png', '/gallery/gal8.png', '/gallery/gal9.png'];
   const PDF_GENERAL = '/normativa-general.pdf';
   const PDF_DISCORD = '/normativa-discord.pdf';
@@ -48,11 +46,11 @@
     return `<footer class="site-footer"><div class="container footer-inner">
       <div class="footer-brand"><img src="${LOGO}" alt="Valencia PD" class="brand-logo footer-logo"><div><strong>VALENCIA PD</strong><p>Comunidad de roleplay FivePD ambientada en la Comunidad Valenciana.</p></div></div>
       <nav class="footer-nav" aria-label="Enlaces del pie de página">
-        <div class="footer-col"><h4>Servidor</h4><a href="/servidor">Presentación</a><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="/guia-inicio">Guía de inicio</a><a href="/estado">Estado</a><a href="/fivem">Servidor FiveM</a></div>
-        <div class="footer-col"><h4>Comunidad</h4><a href="${DISCORD_CONNECT}">Conectar Discord</a><a href="${UNBAN_DISCORD}" target="_blank" rel="noopener">Desbaneos</a></div>
+        <div class="footer-col"><h4>Servidor</h4><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="/guia-inicio">Guía de inicio</a><a href="/estado">Estado</a></div>
+        <div class="footer-col"><h4>Comunidad</h4><a href="${DISCORD_CONNECT}">Conectar Discord</a><a href="/postular">Postular</a><a href="${UNBAN_DISCORD}" target="_blank" rel="noopener">Desbaneos</a></div>
         <div class="footer-col"><h4>Legal</h4><a href="/legal/privacidad">Política de privacidad</a><a href="/legal/terminos">Términos y condiciones</a></div>
       </nav>
-    </div><div class="footer-bottom"><div class="container"><p>© ${new Date().getFullYear()} Valencia PD. Proyecto de roleplay sin ánimo de lucro, no afiliado a Rockstar Games ni a ningún cuerpo policial real.</p><span>Valencia, España</span></div></div></footer>`;
+    </div><div class="footer-bottom"><div class="container"><p>© 2026 ValenciaPD. Todos los derechos reservados.</p><span>No afiliado a Rockstar Games ni a Take-Two Interactive.</span></div></div></footer>`;
   }
 
   function assetImg(src, alt, cls='') {
@@ -143,9 +141,11 @@
 
   function guiaInicio() { const steps=[['01','Creación de personaje','Crea tu personaje con una buena apariencia. En los cuerpos de emergencias, utiliza nombres españoles o valencianos y evita tatuajes visibles en cara y cuello. Una vez creado, puedes usar /tpmenu para desplazarte por el mapa.'],['02','Cuerpos de emergencias','Si quieres formar parte de Policía, Sanidad o Bomberos, únete al Discord de 112 Emergencias, entra en “Trámites” y abre «Número de Placa». Dirígete a la comisaría asignada por el AOP mediante /tpmenu y, una vez tengas tu número de placa, el equipo se pondrá en contacto contigo para la entrega de tu dotación.'],['03','Civiles y maleantes','Crea un personaje diferente al de Emergencias, con otro nombre y apariencia. Desarrolla situaciones creíbles, utiliza correctamente /112 cuando la situación lo requiera, consulta #maleantes y respeta los tiempos de espera y las indicaciones del equipo de Administración.']]; return `<main>${pageHero('Guía inicial','Guía de inicio — Valencia PD','Bienvenido a Valencia. Todos los jugadores nuevos aparecerán inicialmente en el Aeropuerto de Valencia. Desde allí, sigue estos pasos para comenzar tu experiencia en la comunidad.')}<section class="section section-tight"><div class="container"><div class="guide-intro card"><div class="guide-intro-icon">✦</div><div><span class="eyebrow">GUÍA INICIAL · VALENCIA PD</span><h2>Tu primera sesión, paso a paso</h2><p class="prose">Una ruta sencilla para crear tu personaje, entrar en los cuerpos de emergencias o empezar tu historia como civil o maleante.</p></div></div><div class="guide-timeline">${steps.map((st,i)=>`<article class="guide-step card" data-reveal><div class="guide-step-marker"><span>${st[0]}</span>${i<2?'<i></i>':''}</div><div class="guide-step-body"><span class="eyebrow">PASO ${st[0]}</span><h2>${st[1]}</h2><p class="prose">${st[2]}</p></div></article>`).join('')}</div><div class="guide-finish card" data-reveal><span class="eyebrow">INICIO</span><h2>Ya estás preparado.</h2><p class="prose">Una vez completados estos pasos, ya estás preparado para comenzar tu historia en Valencia. Recuerda que un buen roleplay depende del respeto, la coherencia y la colaboración entre todos.</p><div class="cta-banner-actions"><a href="${FIVEM_PROTOCOL}" data-fivem-launch class="btn btn-primary btn-lg">▶ Abrir FiveM</a><a href="${DISCORD_CONNECT}" class="btn btn-ghost btn-lg">${icon('discord')} Conectar Discord</a></div></div></div></section></main>`; }
 
-  function estado() { return `<main>${pageHero('Estado del servicio','Servidor en mantenimiento','Estamos realizando tareas de mantenimiento para dejar Valencia PD listo y estable.')}<section class="section section-tight"><div class="container"><div class="status-hero card" data-reveal><div class="status-orb"><span></span></div><div class="status-copy"><span class="eyebrow">MANTENIMIENTO PROGRAMADO</span><h2>Valencia PD está temporalmente fuera de servicio</h2><p class="section-lead">El equipo está trabajando en segundo plano. Durante este periodo es posible que FiveM no permita conexiones y que algunas funciones estén momentáneamente limitadas.</p><div class="status-meta"><div><span>Estado</span><strong>En mantenimiento</strong></div><div><span>FiveM</span><strong>Temporalmente cerrado</strong></div><div><span>Comunidad</span><strong>Discord disponible</strong></div></div><div class="cta-banner-actions"><a href="${DISCORD}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">${icon('discord')} Ver avisos en Discord</a><a href="/" class="btn btn-ghost btn-lg">Volver al inicio</a></div></div></div><div class="grid grid-3 status-cards" data-reveal><article class="card feature-card"><span class="feature-icon">01</span><h3>Seguimos activos</h3><p>La comunidad continúa disponible en Discord mientras el servidor está en mantenimiento.</p></article><article class="card feature-card"><span class="feature-icon">02</span><h3>Mejoras en curso</h3><p>Las tareas se centran en estabilidad, rendimiento y preparación del siguiente periodo de juego.</p></article><article class="card feature-card"><span class="feature-icon">03</span><h3>Vuelve cuando esté listo</h3><p>Consulta los avisos oficiales para saber cuándo se reabre la conexión de FiveM.</p></article></div></div></section></main>`; }
+  function estado() { return `<main>${pageHero('Estado del servidor','Servidor en desarrollo','Valencia PD está en desarrollo mientras preparamos una experiencia estable, cuidada y lista para la comunidad.')}<section class="section section-tight"><div class="container"><div class="status-hero card" data-reveal><div class="status-orb status-orb-dev"><span></span></div><div class="status-copy"><span class="eyebrow">EN DESARROLLO</span><h2>Estamos construyendo la próxima versión de Valencia PD</h2><p class="section-lead">El servidor y sus servicios están evolucionando. Estamos trabajando en estabilidad, sistemas de juego, contenido y experiencia web antes de abrir la siguiente etapa de la comunidad.</p><div class="status-meta"><div><span>Servidor</span><strong>En desarrollo</strong></div><div><span>Web</span><strong>Activa y en mejora</strong></div><div><span>Discord</span><strong>Comunidad disponible</strong></div></div><div class="cta-banner-actions"><a href="${DISCORD}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">${icon('discord')} Ver novedades</a><a href="/guia-inicio" class="btn btn-ghost btn-lg">Ver guía de inicio</a></div></div></div><div class="grid grid-3 status-cards" data-reveal><article class="card feature-card"><span class="feature-icon">01</span><h3>Base del servidor</h3><p>Seguimos ajustando la infraestructura, los sistemas y el rendimiento para que todo funcione con solidez.</p></article><article class="card feature-card"><span class="feature-icon">02</span><h3>Contenido en preparación</h3><p>Vehículos, servicios, escenarios y herramientas se están afinando antes de la siguiente apertura.</p></article><article class="card feature-card"><span class="feature-icon">03</span><h3>La comunidad sigue aquí</h3><p>Mientras trabajamos en el servidor, Discord permanece como punto de encuentro para noticias y soporte.</p></article></div></div></section></main>`; }
 
-  const pages = {'/':home,'/servidor':servidor,'/galeria':galeria,'/servicios':servicios,'/normativa':normativa,'/guia-inicio':guiaInicio,'/estado':estado,'/legal/privacidad':privacidad,'/legal/terminos':terminos};
+  function postular() { return `<main>${pageHero('Comunidad','Postular en Valencia PD','Forma parte del equipo y ayuda a construir una comunidad de roleplay activa, organizada y con buen ambiente.')}<section class="section section-tight"><div class="container"><div class="section-head"><span class="eyebrow">Oportunidades</span><h2>Encuentra tu lugar en el equipo</h2><p class="section-lead">Cuando abrimos convocatorias, buscamos personas responsables, constantes y con ganas de aportar.</p></div><div class="grid grid-3" data-reveal><article class="card feature-card"><span class="feature-icon">◆</span><h3>Staff</h3><p>Ayuda con la moderación, el soporte y la organización de la comunidad.</p><span class="status-chip">Convocatorias</span></article><article class="card feature-card"><span class="feature-icon">✦</span><h3>Cuerpos de emergencias</h3><p>Desarrolla tu rol dentro de Policía, Sanidad o Bomberos siguiendo los procesos de la comunidad.</p><span class="status-chip">Según disponibilidad</span></article><article class="card feature-card"><span class="feature-icon">◌</span><h3>Colaboraciones</h3><p>Propuestas, proyectos y otras formas de aportar al crecimiento de Valencia PD.</p><span class="status-chip">Próximamente</span></article></div><div class="postular-cta card" data-reveal><div><span class="eyebrow">¿Quieres participar?</span><h2>Las postulaciones se gestionan desde Discord</h2><p class="section-lead">Entra al Discord oficial para consultar los requisitos, convocatorias y formularios disponibles.</p></div><a href="${DISCORD}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">${icon('discord')} Ir al Discord</a></div></div></section></main>`; }
+
+  const pages = {'/':home,'/servidor':servidor,'/galeria':galeria,'/servicios':servicios,'/normativa':normativa,'/guia-inicio':guiaInicio,'/estado':estado,'/postular':postular,'/legal/privacidad':privacidad,'/legal/terminos':terminos};
   const titles = {
     '/': 'Inicio | ValenciaPD',
     '/servidor': 'El servidor | ValenciaPD',
@@ -154,6 +154,7 @@
     '/normativa': 'Normativa | ValenciaPD',
     '/guia-inicio': 'Guía de inicio | ValenciaPD',
     '/estado': 'Estado | ValenciaPD',
+    '/postular': 'Postular | ValenciaPD',
     '/legal/privacidad': 'Política de privacidad | ValenciaPD',
     '/legal/terminos': 'Términos y condiciones | ValenciaPD',
   };
@@ -162,7 +163,6 @@
   app.className = '';
   app.innerHTML = header() + renderer() + footer();
 
-  // Custom desktop cursor. The animation survives BFCache/back navigation without freezing.
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1024px)');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (finePointer.matches && !reducedMotion.matches) {
@@ -205,7 +205,6 @@
     renderCursor();
   }
 
-  // Header scroll + mobile menu
   const headerEl = document.getElementById('site-header');
   const nav = document.getElementById('main-nav');
   const toggle = document.getElementById('nav-toggle');
@@ -214,7 +213,6 @@
   toggle?.addEventListener('click', () => { const open = nav.classList.toggle('open'); toggle.setAttribute('aria-expanded', String(open)); });
   nav?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
 
-  // Hero carousel
   let slide = 0;
   const track = document.getElementById('hero-track');
   const dots = [...document.querySelectorAll('.hero-dot')];
@@ -224,7 +222,6 @@
   dots.forEach(d=>d.addEventListener('click',()=>setSlide(Number(d.dataset.slide))));
   if(track){ window.setInterval(()=>setSlide(slide+1),6500); }
 
-  // Gallery lightbox
   let lightIndex=0;
   const lightbox=document.getElementById('lightbox');
   const lightImg=document.getElementById('lightbox-img');
@@ -236,10 +233,8 @@
   lightbox?.addEventListener('click',e=>{if(e.target===lightbox)lightbox.classList.remove('open')});
   document.addEventListener('keydown',e=>{if(!lightbox?.classList.contains('open'))return;if(e.key==='Escape')lightbox.classList.remove('open');if(e.key==='ArrowLeft')showLight(lightIndex-1);if(e.key==='ArrowRight')showLight(lightIndex+1)});
 
-  // Open FiveM directly through its native protocol instead of navigating to cfx.re.
-  document.querySelectorAll('[data-fivem-launch]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); try { window.location.href = FIVEM_PROTOCOL; } catch {} }));
+  document.querySelectorAll('[data-fivem-launch]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); window.location.href = FIVEM_PROTOCOL; window.setTimeout(() => { if (!document.hidden) { const fallback = document.getElementById('fivem-fallback'); if (fallback) fallback.classList.add('show'); } }, 1200); }));
 
-  // Discord session UI
   async function hydrateDiscordAccount() {
     const slots = [...document.querySelectorAll('[data-discord-auth], #discord-account-slot')];
     if (!slots.length) return;
@@ -285,7 +280,6 @@
   document.addEventListener('keydown',e=>{ const k=String(e.key).toLowerCase(); const blocked=e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['i','j','c'].includes(k))||(e.ctrlKey&&k==='u'); if(blocked){e.preventDefault();e.stopPropagation();showDevtoolsNotice();}},true);
   const loader=document.getElementById('site-loader'); if(loader){ const hideLoader=()=>{loader.classList.add('is-hidden');window.setTimeout(()=>loader.remove(),400)}; window.setTimeout(hideLoader,650); window.addEventListener('pageshow',()=>{if(document.getElementById('site-loader'))window.setTimeout(hideLoader,180)},{once:true}); }
 
-  // Reveal animation used by the supplied design.
   const reveals=[...document.querySelectorAll('[data-reveal]')];
   if('IntersectionObserver' in window){const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}}),{threshold:.12});reveals.forEach(e=>io.observe(e));}
   else reveals.forEach(e=>e.classList.add('is-visible'));
