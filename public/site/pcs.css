@@ -1078,42 +1078,82 @@ main { animation: pageIn 0.42s var(--ease) both; }
   main, .product-card.pop { animation: none !important; }
 }
 
-/* =====================  Curseur "glass" (PC)  ===================== */
+/* =====================  Cursor Valencia PD  ===================== */
 #cursor-glass { display: none; }
 @media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
-  /* on masque le curseur natif PARTOUT (sauf champs texte) : le dot le remplace */
-  *:not(input):not(textarea):not(select):not([contenteditable]) { cursor: none !important; }
+  html.custom-cursor-enabled,
+  html.custom-cursor-enabled body,
+  html.custom-cursor-enabled body *:not(input):not(textarea):not(select):not([contenteditable]) {
+    cursor: none !important;
+  }
 
   #cursor-glass {
     display: block;
-    position: fixed; left: 0; top: 0;
-    width: 34px; height: 34px; border-radius: 50%;
-    pointer-events: none; z-index: 9000;
-    transform: translate3d(-100px, -100px, 0);
+    position: fixed;
+    left: -9px;
+    top: -9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
     opacity: 0;
-    transition: opacity 0.25s ease, width 0.16s ease, height 0.16s ease, margin 0.16s ease, border-color 0.16s ease;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    background:
-      radial-gradient(circle at 34% 28%, rgba(255,255,255,0.28), rgba(255,255,255,0.05) 48%, transparent 70%);
+    transform: translate3d(-100px, -100px, 0);
+    transition:
+      opacity .18s ease,
+      width .2s cubic-bezier(.22,1,.36,1),
+      height .2s cubic-bezier(.22,1,.36,1),
+      left .2s cubic-bezier(.22,1,.36,1),
+      top .2s cubic-bezier(.22,1,.36,1),
+      border-color .2s ease,
+      background .2s ease,
+      box-shadow .2s ease;
+    border: 1px solid rgba(220, 224, 230, .82);
+    background: rgba(145, 151, 160, .28);
     box-shadow:
-      0 5px 16px rgba(0, 0, 0, 0.4),
-      inset 0 1px 2px rgba(255, 255, 255, 0.4),
-      inset 0 -3px 6px rgba(0, 0, 0, 0.25),
-      0 0 0 1px rgba(201, 162, 39, 0.2);
-    /* Fallback (verre lumineux) puis version déformante "vitre" (SVG) si supportée */
-    -webkit-backdrop-filter: brightness(1.12) saturate(1.18);
-            backdrop-filter: brightness(1.12) saturate(1.18);
-    -webkit-backdrop-filter: url(#glass-distort) brightness(1.1) saturate(1.15);
-            backdrop-filter: url(#glass-distort) brightness(1.1) saturate(1.15);
-    will-change: transform;
+      0 0 0 1px rgba(255,255,255,.08),
+      0 5px 20px rgba(0,0,0,.38),
+      inset 0 1px 2px rgba(255,255,255,.22);
+    -webkit-backdrop-filter: blur(5px) saturate(115%);
+    backdrop-filter: blur(5px) saturate(115%);
+    will-change: transform, width, height;
   }
+
+  #cursor-glass::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: rgba(235, 238, 242, .55);
+    box-shadow: 0 0 8px rgba(255,255,255,.22);
+    opacity: .78;
+    transition: inset .2s cubic-bezier(.22,1,.36,1), opacity .2s ease;
+  }
+
   #cursor-glass.visible { opacity: 1; }
-  /* grossit sur les éléments cliquables (centrage gardé via margin) */
-  #cursor-glass.hover { width: 52px; height: 52px; margin: -9px 0 0 -9px; border-color: rgba(201, 162, 39, 0.6); }
-  /* se resserre au clic */
-  #cursor-glass.press { width: 28px; height: 28px; margin: 3px 0 0 3px; }
+
+  #cursor-glass.hover {
+    left: -15px;
+    top: -15px;
+    width: 30px;
+    height: 30px;
+    border-color: rgba(235, 238, 242, .95);
+    background: rgba(150, 157, 167, .22);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.12),
+      0 8px 26px rgba(0,0,0,.42),
+      0 0 18px rgba(190,196,204,.10),
+      inset 0 1px 3px rgba(255,255,255,.26);
+  }
+
+  #cursor-glass.hover::after { inset: 9px; opacity: .5; }
+  #cursor-glass.press { width: 22px; height: 22px; left: -11px; top: -11px; }
+  #cursor-glass.press::after { inset: 7px; }
 }
-@media (prefers-reduced-motion: reduce) { #cursor-glass { display: none !important; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #cursor-glass { display: none !important; }
+}
 
 /* =====================  REFONTE MOBILE  ===================== */
 /* Anti-débordement horizontal global */
@@ -1210,3 +1250,6 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 .brand-logo { height: 42px; width: auto; object-fit: contain; }
 .footer-logo { height: 52px; }
+
+/* Valencia PD brand mark */
+.brand-logo { object-fit: contain; }
