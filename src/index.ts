@@ -1,5 +1,6 @@
 import express from 'express'
 import path from 'path'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { fileURLToPath } from 'url'
 
 import transcriptRoutes from './routes/transcripts.js'
@@ -16,6 +17,40 @@ const app = express()
 app.use(express.json({ limit: '10mb' }))
 
 app.use(express.static(path.join(__dirname, '..', 'public')))
+
+function createDiscordSession(user: { id: string; username: string; global_name?: string | null; avatar?: string | null }): string {
+  const payload = {
+    id: user.id,
+    displayName: user.global_name || user.username,
+    username: user.username,
+    avatarUrl: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null,
+    createdAt: Date.now(),
+  }
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const signature = createHmac('sha256', env.security.sessionSecret).update(encoded).digest('base64url')
+  return `${encoded}.${signature}`
+}
+
+function getDiscordSession(req: express.Request): { id: string; displayName: string; username: string; avatarUrl: string | null } | null {
+  try {
+    const cookieHeader = req.headers.cookie || ''
+    const match = cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith('vpd_discord='))
+    const raw = match?.slice('vpd_discord='.length)
+    if (!raw) return null
+    const [encoded, signature] = raw.split('.')
+    if (!encoded || !signature) return null
+    const expected = createHmac('sha256', env.security.sessionSecret).update(encoded).digest('base64url')
+    const a = Buffer.from(signature)
+    const b = Buffer.from(expected)
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as { id?: string; displayName?: string; username?: string; avatarUrl?: string | null; createdAt?: number }
+    if (!payload.id || !payload.displayName || !payload.username || !payload.createdAt) return null
+    if (Date.now() - payload.createdAt > 7 * 24 * 60 * 60 * 1000) return null
+    return { id: payload.id, displayName: payload.displayName, username: payload.username, avatarUrl: payload.avatarUrl ?? null }
+  } catch {
+    return null
+  }
+}
 
 function htmlEscape(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;')
@@ -40,12 +75,24 @@ app.get('/callback', async (req, res, next) => {
     const tokens = await exchangeCode(code)
     const user = await getDiscordUser(tokens.access_token)
     if (!(await isGuildMember(user.id))) await addUserToGuild(tokens.access_token, user.id)
-    const displayName = htmlEscape(user.global_name || user.username)
-    return res.status(200).type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discord conectado · ValenciaPD</title><link rel="icon" type="image/png" href="/site/favicon.png"><link rel="stylesheet" href="/site/pcs.css"></head><body><main class="page-hero"><div class="container"><span class="eyebrow">Discord · Valencia PD</span><h1>Cuenta conectada correctamente</h1><p class="page-lead">Bienvenido/a, <strong>${displayName}</strong>. Tu cuenta de Discord ha quedado conectada con Valencia PD.</p><div class="cta-banner-actions"><a class="btn btn-primary btn-lg" href="/">Volver al inicio</a><a class="btn btn-ghost btn-lg" href="${env.publicUrl}">Abrir portal de verificación</a></div></div></main></body></html>`)
+    const session = createDiscordSession(user)
+    res.setHeader('Set-Cookie', `vpd_discord=${session}; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
+    return res.redirect('/?discord=connected')
   } catch (error) {
     console.error('Discord connection error:', error)
     return res.status(500).type('html').send('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discord · ValenciaPD</title><link rel="stylesheet" href="/site/pcs.css"></head><body><main class="page-hero"><div class="container"><span class="eyebrow">Discord</span><h1>No hemos podido conectar la cuenta</h1><p class="page-lead">El servicio de Discord ha rechazado temporalmente la solicitud. Inténtalo de nuevo desde Valencia PD.</p><a class="btn btn-primary btn-lg" href="/discord">Intentar de nuevo</a></div></main></body></html>')
   }
+})
+
+app.get('/api/discord/me', (req, res) => {
+  const session = getDiscordSession(req)
+  if (!session) return res.json({ authenticated: false })
+  return res.json({ authenticated: true, ...session })
+})
+
+app.post('/discord/logout', (_req, res) => {
+  res.setHeader('Set-Cookie', 'vpd_discord=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
+  return res.status(204).end()
 })
 
 const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/legal/privacidad', '/legal/terminos']
