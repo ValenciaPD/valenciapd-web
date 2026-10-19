@@ -1,4 +1,5 @@
 import { Router, type NextFunction, type Request, type Response } from 'express'
+import net from 'net'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -181,7 +182,13 @@ router.get('/api/admin/diag', async (_req, res) => {
     }
   }
   const [current, ...alts] = await Promise.all([probe(env.fivem.apiUrl), ...DIAG_URLS.map(probe)])
-  return res.json({ configured: true, result: current, alternatives: Object.fromEntries(DIAG_URLS.map((u, i) => [new URL(u).host, alts[i]])) })
+  const db = await new Promise<string>((resolve) => {
+    const sock = net.connect({ host: '82.41.119.3', port: 3306, timeout: 5000 })
+    sock.once('connect', () => { sock.destroy(); resolve('open') })
+    sock.once('timeout', () => { sock.destroy(); resolve('timeout') })
+    sock.once('error', (e: NodeJS.ErrnoException) => resolve(e.code || 'error'))
+  })
+  return res.json({ configured: true, db, result: current, alternatives: Object.fromEntries(DIAG_URLS.map((u, i) => [new URL(u).host, alts[i]])) })
 })
 
 router.post('/api/admin/call', async (req, res) => {
