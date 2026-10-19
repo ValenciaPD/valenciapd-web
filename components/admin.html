@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#07080B">
+  <title>Panel de staff | ValenciaPD</title>
+  <link rel="icon" type="image/png" href="/site/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #07080B; --panel: #0F1117; --panel-2: #151821; --border: rgba(255,255,255,.09); --border-soft: rgba(255,255,255,.055);
+      --text: #EDF0F5; --muted: #99A1AE; --faint: #636C79;
+      --accent: #F2C230; --accent-soft: rgba(242,194,48,.10); --on-accent: #17130A;
+      --ok: #3FB950; --danger: #E5534B; --info: #3B82F6; --discord: #5865F2;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; }
+    button, input, select { font: inherit; color: inherit; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+    header.top { position: sticky; top: 0; z-index: 10; background: rgba(7,8,11,.85); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border-soft); }
+    header.top .wrap { display: flex; align-items: center; gap: 12px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.01em; text-decoration: none; color: var(--text); }
+    .brand img { height: 34px; }
+    .brand small { color: var(--accent); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; }
+    .spacer { flex: 1; }
+    .me { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .me img { width: 34px; height: 34px; border-radius: 50%; background: var(--panel-2); }
+    .me .who { display: grid; line-height: 1.2; min-width: 0; }
+    .me .who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .me .who span { color: var(--accent); font-size: .78rem; }
+
+    .btn { color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: .5rem .85rem; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); cursor: pointer; font-weight: 600; font-size: .88rem; text-decoration: none; transition: border-color .15s, background .15s, transform .15s; }
+    .btn:hover { border-color: rgba(255,255,255,.2); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: .5; cursor: progress; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .btn.danger { color: #fff; background: rgba(229,83,75,.16); border-color: rgba(229,83,75,.45); }
+    .btn.ok { background: rgba(63,185,80,.14); border-color: rgba(63,185,80,.45); }
+    .btn.ghost { background: transparent; }
+    .btn.discord { background: var(--discord); border-color: var(--discord); color: #fff; }
+    .btn.sm { padding: .3rem .6rem; font-size: .8rem; }
+
+    main { padding: 24px 0 48px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 16px; min-width: 0; }
+    .card h2 { margin: 0 0 12px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+    .card h2 .count { color: var(--muted); font-weight: 500; font-size: .85rem; }
+    .search { width: 100%; padding: .6rem .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); outline: none; }
+    .search:focus, .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    .players { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; max-height: calc(100vh - 230px); overflow: auto; }
+    .player { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--panel-2); cursor: pointer; text-align: left; width: 100%; }
+    .player:hover, .player.active { border-color: var(--accent); }
+    .player .pid { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .player .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .player .sub { color: var(--muted); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .player .ping { color: var(--faint); font-size: .8rem; font-variant-numeric: tabular-nums; }
+    .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: .7rem; font-weight: 700; vertical-align: middle; }
+
+    .detail-empty { color: var(--muted); text-align: center; padding: 40px 12px; }
+    .detail-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+    .detail-head h3 { margin: 0; font-size: 1.25rem; }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0; font-size: .88rem; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; overflow-wrap: anywhere; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .section-title { margin: 18px 0 8px; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+    .no-perms { color: var(--faint); font-size: .85rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border-soft); }
+    th { color: var(--muted); font-weight: 600; font-size: .78rem; }
+    th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+    dialog::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(3px); }
+    dialog .dlg-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border-soft); }
+    dialog .dlg-head h3 { margin: 0; font-size: 1rem; flex: 1; }
+    dialog .dlg-body { padding: 16px; overflow: auto; max-height: calc(100vh - 180px); }
+    dialog .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-soft); }
+    .field { display: grid; gap: 4px; margin-bottom: 12px; }
+    .field label { color: var(--muted); font-size: .82rem; font-weight: 600; }
+    .field input, .field select { width: 100%; padding: .55rem .7rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); outline: none; }
+    .field .hint { color: var(--faint); font-size: .78rem; }
+
+    .gate { min-height: calc(100vh - 64px); display: grid; place-items: center; text-align: center; padding: 24px 16px; }
+    .gate .box { max-width: 460px; }
+    .gate h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    .gate p { color: var(--muted); margin: 0 0 20px; }
+
+    #toasts { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 1000; }
+    .toast { padding: 10px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: min(380px, calc(100vw - 32px)); font-size: .9rem; }
+    .toast.ok { border-color: rgba(63,185,80,.6); }
+    .toast.err { border-color: rgba(229,83,75,.7); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/site/valenciapd-logo.png" alt=""><span>Valencia PD <small>Staff</small></span></a>
+      <div class="spacer"></div>
+      <div class="me" id="me" hidden>
+        <img id="me-avatar" alt="">
+        <div class="who"><b id="me-name"></b><span id="me-group"></span></div>
+        <a class="btn ghost sm" href="/admin/logout">Salir</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="gate" id="gate">
+    <div class="box">
+      <h1 id="gate-title">Cargando panel…</h1>
+      <p id="gate-text"></p>
+      <div id="gate-actions"></div>
+    </div>
+  </div>
+
+  <main id="panel" hidden>
+    <div class="wrap grid">
+      <section class="card">
+        <h2>Jugadores conectados <span class="count" id="player-count"></span><span class="spacer"></span><button class="btn sm" id="refresh">Actualizar</button></h2>
+        <input class="search" id="search" type="search" placeholder="Buscar por nombre, ID o trabajo…" autocomplete="off">
+        <ul class="players" id="players"></ul>
+      </section>
+      <section class="card" id="detail">
+        <div class="detail-empty">Selecciona un jugador de la lista para ver sus opciones.</div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="dlg">
+    <form method="dialog" id="dlg-form">
+      <div class="dlg-head"><h3 id="dlg-title"></h3><button class="btn ghost sm" value="cancel" formnovalidate>✕</button></div>
+      <div class="dlg-body" id="dlg-body"></div>
+      <div class="dlg-foot" id="dlg-foot"></div>
+    </form>
+  </dialog>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    'use strict'
+    const $ = (id) => document.getElementById(id)
+    const state = { perms: new Set(), players: [], selected: null }
+    const can = (p) => state.perms.has(p)
+
+    // Crea elementos sin innerHTML para que ningún nombre de jugador pueda inyectar HTML
+    function el(tag, props = {}, ...children) {
+      const node = document.createElement(tag)
+      for (const [k, v] of Object.entries(props)) {
+        if (v == null || v === false) continue
+        if (k === 'class') node.className = v
+        else if (k.startsWith('on')) node.addEventListener(k.slice(2), v)
+        else if (k in node && k !== 'list') node[k] = v
+        else node.setAttribute(k, v)
+      }
+      for (const c of children.flat()) if (c != null && c !== false) node.append(c instanceof Node ? c : String(c))
+      return node
+    }
+
+    function toast(msg, kind = 'ok') {
+      const t = el('div', { class: `toast ${kind}` }, msg)
+      $('toasts').append(t)
+      setTimeout(() => t.remove(), 4500)
+    }
+
+    async function api(path, body) {
+      const res = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' } : { credentials: 'same-origin' })
+      let data = {}
+      try { data = await res.json() } catch {}
+      if (!res.ok) { const e = new Error(data.error || `Error ${res.status}`); e.status = res.status; e.data = data; throw e }
+      return data
+    }
+    const action = (name, target, data) => api('/api/admin/action', { action: name, target, data })
+
+    function gate(title, text, actions = []) {
+      $('gate-title').textContent = title
+      $('gate-text').textContent = text
+      $('gate-actions').replaceChildren(...actions)
+      $('gate').hidden = false
+      $('panel').hidden = true
+    }
+
+    function showMe(user, groupLabel) {
+      $('me').hidden = false
+      $('me-name').textContent = user.displayName
+      $('me-group').textContent = groupLabel || user.discordRoles.join(', ')
+      if (user.avatarUrl) $('me-avatar').src = user.avatarUrl
+      else $('me-avatar').hidden = true
+    }
+
+    // ---------- Diálogos ----------
+    function openDialog(title, fields, submitLabel, onSubmit, { danger = false } = {}) {
+      $('dlg-title').textContent = title
+      const inputs = {}
+      $('dlg-body').replaceChildren(...fields.map(f => {
+        const id = 'f_' + f.name
+        let input
+        if (f.type === 'select') input = el('select', { id, required: f.required }, f.options.map(o => el('option', { value: o.value }, o.label)))
+        else input = el('input', { id, type: f.type || 'text', required: f.required, min: f.min, max: f.max, step: f.step, value: f.value ?? '', placeholder: f.placeholder || '', maxLength: f.maxLength || 200, autocomplete: 'off' })
+        inputs[f.name] = input
+        return el('div', { class: 'field' }, el('label', { for: id }, f.label), input, f.hint && el('div', { class: 'hint' }, f.hint))
+      }))
+      const submit = el('button', { class: `btn ${danger ? 'danger' : 'primary'}`, value: 'ok', type: 'submit' }, submitLabel)
+      $('dlg-foot').replaceChildren(el('button', { class: 'btn ghost', value: 'cancel', formNoValidate: true }, 'Cancelar'), submit)
+      const form = $('dlg-form')
+      form.onsubmit = async (ev) => {
+        if (ev.submitter?.value !== 'ok') return
+        ev.preventDefault()
+        const values = Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.type === 'number' ? Number(i.value) : i.value.trim()]))
+        submit.disabled = true
+        try { await onSubmit(values); $('dlg').close() } catch (e) { toast(e.message, 'err') } finally { submit.disabled = false }
+      }
+      if (!$('dlg').open) $('dlg').showModal()
+      fields.length && inputs[fields[0].name].focus()
+    }
+
+    function showInfoDialog(title, content, footer = []) {
+      $('dlg-title').textContent = title
+      $('dlg-body').replaceChildren(content)
+      $('dlg-foot').replaceChildren(...footer, el('button', { class: 'btn', value: 'cancel', formNoValidate: true }, 'Cerrar'))
+      $('dlg-form').onsubmit = null
+      if (!$('dlg').open) $('dlg').showModal()
+    }
+
+    // ---------- Jugadores ----------
+    async function loadPlayers() {
+      $('refresh').disabled = true
+      try {
+        const { players } = await action('players.list')
+        state.players = players.sort((a, b) => a.id - b.id)
+        if (state.selected && !state.players.some(p => p.id === state.selected)) state.selected = null
+        renderPlayers()
+        renderDetail()
+      } catch (e) { toast(e.message, 'err') } finally { $('refresh').disabled = false }
+    }
+
+    function renderPlayers() {
+      const q = $('search').value.trim().toLowerCase()
+      const list = state.players.filter(p => !q || String(p.id) === q || [p.name, p.character, p.job].some(v => v && v.toLowerCase().includes(q)))
+      $('player-count').textContent = `(${state.players.length})`
+      $('players').replaceChildren(...(list.length ? list.map(p => el('li', {},
+        el('button', { class: 'player' + (p.id === state.selected ? ' active' : ''), type: 'button', onclick: () => { state.selected = p.id; renderPlayers(); renderDetail() } },
+          el('span', { class: 'pid' }, '#' + p.id),
+          el('span', {}, el('div', { class: 'name' }, p.name || 'Desconocido', p.staffGroup && el('span', { class: 'tag' }, 'STAFF')),
+            el('div', { class: 'sub' }, [p.character, p.job && `${p.job}${p.jobGrade ? ' · ' + p.jobGrade : ''}`].filter(Boolean).join(' — ') || 'Sin personaje cargado')),
+          el('span', { class: 'ping' }, `${p.ping} ms`)))) : [el('li', { class: 'detail-empty' }, state.players.length ? 'Ningún jugador coincide con la búsqueda.' : 'No hay jugadores conectados.')]))
+    }
+
+    function run(name, target, data, okMsg) {
+      return action(name, target, data).then((r) => { toast(okMsg); return r })
+    }
+
+    function actionButton(label, perm, handler, cls = '') {
+      return can(perm) ? el('button', { class: `btn ${cls}`, type: 'button', onclick: handler }, label) : null
+    }
+
+    function renderDetail() {
+      const p = state.players.find(x => x.id === state.selected)
+      if (!p) { $('detail').replaceChildren(el('div', { class: 'detail-empty' }, 'Selecciona un jugador de la lista para ver sus opciones.')); return }
+      const id = p.id
+      const label = `${p.name} (#${id})`
+
+      const groups = [
+        ['Inventario', [
+          actionButton('Abrir inventario', 'inventory.view', () => openInventory(p)),
+          actionButton('Dar objeto', 'inventory.give', () => giveItem(p)),
+        ]],
+        ['Dinero y trabajo', [
+          actionButton('Ver dinero', 'player.view_money_accounts', () => openAccounts(p)),
+          actionButton('Cambiar trabajo', 'player.update_job', () => openDialog(`Cambiar trabajo · ${label}`, [
+            { name: 'job', label: 'Trabajo (nombre interno)', required: true, placeholder: 'police', maxLength: 50 },
+            { name: 'grade', label: 'Rango', type: 'number', min: 0, value: 0, required: true },
+          ], 'Guardar', (v) => run('player.update_job', id, v, 'Trabajo actualizado').then(loadPlayers))),
+        ]],
+        ['Ayuda', [
+          actionButton('Revivir', 'player.revive', () => run('player.revive', id, {}, `${p.name} revivido`).catch(e => toast(e.message, 'err')), 'ok'),
+          actionButton('Curar', 'player.heal', () => run('player.heal', id, {}, `${p.name} curado`).catch(e => toast(e.message, 'err')), 'ok'),
+          actionButton('Enviar notificación', 'player.notify', () => openDialog(`Notificar · ${label}`, [
+            { name: 'message', label: 'Mensaje', required: true, maxLength: 300 },
+          ], 'Enviar', (v) => run('player.notify', id, v, 'Notificación enviada'))),
+        ]],
+        ['Sanciones', [
+          actionButton('Congelar', 'player.freeze', () => run('player.freeze', id, { freeze: true }, `${p.name} congelado`).catch(e => toast(e.message, 'err'))),
+          actionButton('Descongelar', 'player.freeze', () => run('player.freeze', id, { freeze: false }, `${p.name} descongelado`).catch(e => toast(e.message, 'err'))),
+          actionButton('Advertir', 'player.warn', () => openDialog(`Advertir · ${label}`, [
+            { name: 'reason', label: 'Motivo', required: true, maxLength: 200 },
+          ], 'Advertir', (v) => run('player.warn', id, v, 'Advertencia registrada'))),
+          actionButton('Expulsar', 'player.kick', () => openDialog(`Expulsar · ${label}`, [
+            { name: 'reason', label: 'Motivo', required: true, maxLength: 200 },
+          ], 'Expulsar', (v) => run('player.kick', id, v, `${p.name} expulsado`).then(loadPlayers), { danger: true }), 'danger'),
+          actionButton('Banear', 'player.ban', () => openDialog(`Banear · ${label}`, [
+            { name: 'reason', label: 'Motivo', required: true, maxLength: 200 },
+            { name: 'hours', label: 'Duración', type: 'select', options: [
+              { value: '1', label: '1 hora' }, { value: '6', label: '6 horas' }, { value: '24', label: '1 día' }, { value: '72', label: '3 días' },
+              { value: '168', label: '7 días' }, { value: '720', label: '30 días' }, { value: '0', label: 'Permanente' },
+            ] },
+          ], 'Banear', (v) => run('player.ban', id, { reason: v.reason, hours: Number(v.hours) }, `${p.name} baneado`).then(loadPlayers), { danger: true }), 'danger'),
+        ]],
+      ].map(([title, buttons]) => [title, buttons.filter(Boolean)]).filter(([, b]) => b.length)
+
+      const kv = el('dl', { class: 'kv' },
+        el('dt', {}, 'Personaje'), el('dd', {}, p.character || '—'),
+        el('dt', {}, 'Trabajo'), el('dd', {}, p.job ? `${p.job}${p.jobGrade ? ' · ' + p.jobGrade : ''}` : '—'),
+        el('dt', {}, 'Ping'), el('dd', {}, `${p.ping} ms`),
+        p.staffGroup && [el('dt', {}, 'Staff'), el('dd', {}, p.staffGroup)],
+        p.identifiers && [el('dt', {}, 'Identificadores'), el('dd', {}, p.identifiers.map(i => el('div', {}, i)))],
+      )
+
+      $('detail').replaceChildren(
+        el('div', { class: 'detail-head' }, el('h3', {}, p.name), el('span', { class: 'pid' }, '#' + id)),
+        kv,
+        ...(groups.length
+          ? groups.flatMap(([title, buttons]) => [el('div', { class: 'section-title' }, title), el('div', { class: 'actions' }, buttons)])
+          : [el('p', { class: 'no-perms' }, 'Tu rango no tiene permisos para actuar sobre jugadores desde la web.')]),
+      )
+    }
+
+    async function openInventory(p) {
+      try {
+        const { items } = await action('inventory.view', p.id)
+        const rows = items.sort((a, b) => (a.slot ?? 999) - (b.slot ?? 999)).map(it => el('tr', {},
+          el('td', {}, it.label || it.name, it.label && it.label !== it.name && el('div', { class: 'sub', style: 'color:var(--faint);font-size:.75rem' }, it.name)),
+          el('td', { class: 'num' }, 'x' + it.count),
+          can('inventory.remove') && el('td', { class: 'num' }, el('button', { class: 'btn danger sm', type: 'button', onclick: () => removeItem(p, it) }, 'Quitar')),
+        ))
+        const table = items.length
+          ? el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Objeto'), el('th', { class: 'num' }, 'Cantidad'), can('inventory.remove') && el('th', {}))), el('tbody', {}, rows))
+          : el('p', { class: 'no-perms' }, 'El inventario está vacío.')
+        showInfoDialog(`Inventario · ${p.name} (#${p.id})`, table, [can('inventory.give') && el('button', { class: 'btn primary', type: 'button', onclick: () => giveItem(p) }, 'Dar objeto')].filter(Boolean))
+      } catch (e) { toast(e.message, 'err') }
+    }
+
+    function giveItem(p) {
+      openDialog(`Dar objeto · ${p.name} (#${p.id})`, [
+        { name: 'item', label: 'Objeto (nombre interno)', required: true, placeholder: 'water', maxLength: 64 },
+        { name: 'amount', label: 'Cantidad', type: 'number', min: 1, max: 10000, value: 1, required: true },
+      ], 'Dar', (v) => run('inventory.give', p.id, v, `Dado ${v.item} x${v.amount}`).then(() => can('inventory.view') && openInventory(p)))
+    }
+
+    function removeItem(p, it) {
+      openDialog(`Quitar ${it.label || it.name} · ${p.name}`, [
+        { name: 'amount', label: `Cantidad (tiene ${it.count})`, type: 'number', min: 1, max: it.count, value: it.count, required: true },
+      ], 'Quitar', (v) => run('inventory.remove', p.id, { item: it.name, amount: v.amount }, `Quitado ${it.name} x${v.amount}`).then(() => openInventory(p)), { danger: true })
+    }
+
+    async function openAccounts(p) {
+      try {
+        const { accounts } = await action('player.accounts', p.id)
+        const fmt = new Intl.NumberFormat('es-ES')
+        const table = el('table', {},
+          el('thead', {}, el('tr', {}, el('th', {}, 'Cuenta'), el('th', { class: 'num' }, 'Saldo'), can('player.manage_accounts') && el('th', {}))),
+          el('tbody', {}, accounts.map(a => el('tr', {},
+            el('td', {}, a.label || a.name),
+            el('td', { class: 'num' }, fmt.format(a.money) + ' €'),
+            can('player.manage_accounts') && el('td', { class: 'num' }, el('button', { class: 'btn sm', type: 'button', onclick: () => openDialog(`Fijar ${a.label || a.name} · ${p.name}`, [
+              { name: 'amount', label: 'Nuevo saldo', type: 'number', min: 0, value: a.money, required: true },
+            ], 'Guardar', (v) => run('player.set_account', p.id, { account: a.name, amount: v.amount }, 'Saldo actualizado').then(() => openAccounts(p))) }, 'Editar')),
+          ))))
+        showInfoDialog(`Dinero · ${p.name} (#${p.id})`, table)
+      } catch (e) { toast(e.message, 'err') }
+    }
+
+    // ---------- Arranque ----------
+    async function init() {
+      try {
+        const me = await api('/api/admin/me')
+        showMe(me.user, me.groupLabel)
+        state.perms = new Set(me.permissions)
+        $('gate').hidden = true
+        $('panel').hidden = false
+        await loadPlayers()
+        setInterval(() => { if (!document.hidden && !$('dlg').open) loadPlayers() }, 30000)
+      } catch (e) {
+        if (e.data?.user) showMe(e.data.user)
+        if (e.status === 401) return gate('Acceso de staff', 'Inicia sesión con tu cuenta de Discord para entrar al panel.', [el('a', { class: 'btn discord', href: '/discord?next=admin' }, 'Entrar con Discord')])
+        if (e.status === 403) return gate('Sin acceso', e.message, [el('a', { class: 'btn', href: '/' }, 'Volver a la web'), ' ', el('a', { class: 'btn ghost', href: '/admin/logout' }, 'Cambiar de cuenta')])
+        gate('Panel no disponible', e.message, [el('button', { class: 'btn primary', type: 'button', onclick: () => location.reload() }, 'Reintentar')])
+      }
+    }
+
+    $('search').addEventListener('input', renderPlayers)
+    $('refresh').addEventListener('click', loadPlayers)
+    init()
+  })()
+  </script>
+</body>
+</html>

@@ -220,3 +220,37 @@ export async function sendVerificationLog(options: {
     console.error('Verification log error:', error)
   }
 }
+
+export interface GuildMember {
+  roles: string[]
+  nick?: string | null
+  user?: DiscordUser
+}
+
+// Devuelve null si el usuario no está en el servidor de Discord
+export async function getGuildMember(
+  userId: string,
+): Promise<GuildMember | null> {
+  const response = await fetch(
+    `${DISCORD_API}/guilds/${env.discord.guildId}/members/${userId}`,
+    {
+      headers: {
+        Authorization: `Bot ${env.discord.botToken}`,
+      },
+    },
+  )
+
+  if (response.status === 404) {
+    return null
+  }
+
+  const text = await response.text()
+
+  if (!response.ok) {
+    throw new Error(
+      `DISCORD_MEMBER_HTTP_${response.status}: ${text.slice(0, 600)}`,
+    )
+  }
+
+  return JSON.parse(text) as GuildMember
+}
