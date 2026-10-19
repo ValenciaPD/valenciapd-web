@@ -165,6 +165,20 @@ router.get('/api/admin/me', async (req, res) => {
   }
 })
 
+// Diagnóstico de la conexión web -> FiveM. No expone datos: solo si el servidor responde y si el secreto coincide.
+router.get('/api/admin/diag', async (_req, res) => {
+  if (!isFivemConfigured()) return res.json({ configured: false, result: 'missing_secret' })
+  try {
+    // ID imposible: si la firma es válida, luxu responde 403 "sin grupo de staff"
+    await callFivem('/webadmin/me', { discordId: '0', roles: [], name: 'diag' })
+    return res.json({ configured: true, result: 'ok' })
+  } catch (error) {
+    if (!(error instanceof FivemError)) return res.json({ configured: true, result: 'error' })
+    const result = error.status === 403 ? 'ok' : error.message === 'No autorizado' ? 'bad_secret' : error.status === 502 && /conectar/.test(error.message) ? 'unreachable' : `http_${error.status}`
+    return res.json({ configured: true, result })
+  }
+})
+
 router.post('/api/admin/call', async (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: 'Origen no permitido' })
   if (!req.is('application/json')) return res.status(415).json({ error: 'Tipo de contenido no válido' })
