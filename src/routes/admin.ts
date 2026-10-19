@@ -1,15 +1,15 @@
-import { Router, type Request, type Response } from 'express'
+import { Router, type NextFunction, type Request, type Response } from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { getGuildMember } from '../services/discord.js'
-import { callFivem, FivemError, isFivemConfigured } from '../services/fivem.js'
+import { callFivem, FivemError, isFivemConfigured, type FivemIdentity } from '../services/fivem.js'
 import { getDiscordSession, type DiscordSession } from '../services/session.js'
 
 const router = Router()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ADMIN_PAGE = path.join(__dirname, '..', '..', 'components', 'admin.html')
+const ADMIN_DIR = path.join(__dirname, '..', '..', 'components', 'admin')
 
 // Roles de Discord con acceso al panel. Lo que cada uno puede hacer lo decide su grupo en luxu_admin.
 const STAFF_ROLES: Record<string, string> = {
@@ -22,24 +22,98 @@ const STAFF_ROLES: Record<string, string> = {
   '1537177910287278111': 'Helper',
 }
 
+// El panel exige haber iniciado sesión con Discord hace menos de 12 h (la cookie general dura 7 días)
+const ADMIN_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000
+const ROLE_CACHE_MS = 20_000
+const RATE_LIMIT = { windowMs: 60_000, max: 300 }
+const MAX_BODY_BYTES = 32 * 1024
+
+// ---------------------------------------------------------------------------------------------- cabeceras de seguridad
+const CSP = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com",
+  "img-src 'self' data: https://cdn.discordapp.com",
+  "media-src 'self' blob:",
+  "connect-src 'self'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ')
+
+function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  res.setHeader('Content-Security-Policy', CSP)
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'no-referrer')
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains')
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow')
+  next()
+}
+router.use(['/admin', '/api/admin'], securityHeaders)
+
+// ---------------------------------------------------------------------------------------------- sesión y roles
 interface StaffContext {
   session: DiscordSession
-  roles: string[]
+  identity: FivemIdentity
   staffRoles: string[]
 }
 
-async function getStaff(req: Request): Promise<StaffContext | 'no-session' | 'no-staff'> {
-  const session = getDiscordSession(req)
-  if (!session) return 'no-session'
-  const member = await getGuildMember(session.id)
+const roleCache = new Map<string, { roles: string[]; exp: number }>()
+
+async function getRoles(discordId: string): Promise<string[]> {
+  const hit = roleCache.get(discordId)
+  if (hit && hit.exp > Date.now()) return hit.roles
+  const member = await getGuildMember(discordId)
   const roles = member?.roles ?? []
-  const staffRoles = roles.filter(r => r in STAFF_ROLES)
-  if (staffRoles.length === 0) return 'no-staff'
-  return { session, roles, staffRoles }
+  roleCache.set(discordId, { roles, exp: Date.now() + ROLE_CACHE_MS })
+  if (roleCache.size > 5000) roleCache.clear()
+  return roles
 }
 
-function fivemPayload(staff: StaffContext) {
-  return { discordId: staff.session.id, roles: staff.roles, name: staff.session.displayName }
+function adminSession(req: Request): DiscordSession | null {
+  const session = getDiscordSession(req)
+  if (!session || Date.now() - session.createdAt > ADMIN_SESSION_MAX_AGE_MS) return null
+  return session
+}
+
+async function getStaff(req: Request): Promise<StaffContext | 'no-session' | 'no-staff'> {
+  const session = adminSession(req)
+  if (!session) return 'no-session'
+  const roles = await getRoles(session.id)
+  const staffRoles = roles.filter(r => Object.hasOwn(STAFF_ROLES, r))
+  if (staffRoles.length === 0) return 'no-staff'
+  return { session, staffRoles, identity: { discordId: session.id, roles, name: session.displayName } }
+}
+
+// ---------------------------------------------------------------------------------------------- límites
+const hits = new Map<string, { count: number; reset: number }>()
+function rateLimited(key: string): boolean {
+  const now = Date.now()
+  const entry = hits.get(key)
+  if (!entry || entry.reset < now) {
+    hits.set(key, { count: 1, reset: now + RATE_LIMIT.windowMs })
+    if (hits.size > 10_000) hits.clear()
+    return false
+  }
+  entry.count++
+  return entry.count > RATE_LIMIT.max
+}
+
+// Las peticiones que cambian algo deben venir de esta misma web (además de la cookie SameSite=Lax)
+function sameOrigin(req: Request): boolean {
+  const origin = req.headers.origin
+  if (!origin) return false
+  try {
+    return new URL(origin).host === req.headers.host
+  } catch {
+    return false
+  }
 }
 
 function sendError(res: Response, error: unknown) {
@@ -48,24 +122,33 @@ function sendError(res: Response, error: unknown) {
   return res.status(500).json({ error: 'Error interno' })
 }
 
+// ---------------------------------------------------------------------------------------------- páginas
 router.get('/admin', (req, res) => {
-  if (!getDiscordSession(req)) return res.redirect('/discord?next=admin')
-  res.setHeader('Cache-Control', 'no-store')
-  res.setHeader('X-Frame-Options', 'DENY')
-  return res.sendFile(ADMIN_PAGE)
+  if (!adminSession(req)) return res.redirect('/discord?next=admin')
+  return res.sendFile(path.join(ADMIN_DIR, 'index.html'))
+})
+
+const ASSETS: Record<string, string> = { 'admin.js': 'application/javascript; charset=utf-8', 'admin.css': 'text/css; charset=utf-8' }
+router.get('/admin/assets/:file', (req, res) => {
+  const type = ASSETS[req.params.file]
+  if (!type) return res.status(404).end()
+  res.type(type)
+  return res.sendFile(path.join(ADMIN_DIR, req.params.file))
 })
 
 router.get('/admin/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', 'vpd_discord=; Domain=.valenciapd.es; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
+  res.append('Set-Cookie', 'vpd_discord=; Domain=.valenciapd.es; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
+  res.append('Set-Cookie', 'vpd_discord=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax')
   return res.redirect('/')
 })
 
+// ---------------------------------------------------------------------------------------------- API
 router.get('/api/admin/me', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store')
   try {
     const staff = await getStaff(req)
     if (staff === 'no-session') return res.status(401).json({ error: 'Inicia sesión con Discord' })
     if (staff === 'no-staff') return res.status(403).json({ error: 'No tienes un rol de staff en el Discord de Valencia PD' })
+    if (rateLimited(staff.session.id)) return res.status(429).json({ error: 'Demasiadas peticiones, espera un momento' })
 
     const user = {
       id: staff.session.id,
@@ -75,32 +158,30 @@ router.get('/api/admin/me', async (req, res) => {
     }
     if (!isFivemConfigured()) return res.status(503).json({ user, error: 'El panel no está configurado todavía (falta FIVEM_API_SECRET en Vercel)' })
 
-    const luxu = await callFivem<{ group: string; label: string; permissions: string[] }>('/me', fivemPayload(staff))
-    return res.json({ user, group: luxu.group, groupLabel: luxu.label, permissions: luxu.permissions })
+    const luxu = await callFivem<Record<string, unknown>>('/webadmin/me', { ...staff.identity })
+    return res.json({ user, ...luxu })
   } catch (error) {
     return sendError(res, error)
   }
 })
 
-router.post('/api/admin/action', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store')
-  // Solo JSON: un formulario de otra web no puede enviar application/json sin preflight CORS
+router.post('/api/admin/call', async (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: 'Origen no permitido' })
   if (!req.is('application/json')) return res.status(415).json({ error: 'Tipo de contenido no válido' })
+  if (Number(req.headers['content-length'] || 0) > MAX_BODY_BYTES) return res.status(413).json({ error: 'Petición demasiado grande' })
 
   try {
     const staff = await getStaff(req)
-    if (staff === 'no-session') return res.status(401).json({ error: 'Inicia sesión con Discord' })
+    if (staff === 'no-session') return res.status(401).json({ error: 'Tu sesión ha caducado, vuelve a iniciar sesión' })
     if (staff === 'no-staff') return res.status(403).json({ error: 'No tienes un rol de staff' })
+    if (rateLimited(staff.session.id)) return res.status(429).json({ error: 'Demasiadas peticiones, espera un momento' })
 
-    const { action, target, data } = req.body ?? {}
-    if (typeof action !== 'string' || !/^[a-z_.]{3,40}$/.test(action)) return res.status(400).json({ error: 'Acción no válida' })
+    const { op, data } = req.body ?? {}
+    if (typeof op !== 'string' || !/^[a-z_]{2,40}(\.[a-z_]{2,40})?$/.test(op)) return res.status(400).json({ error: 'Operación no válida' })
+    if (data !== undefined && (typeof data !== 'object' || data === null || Array.isArray(data))) return res.status(400).json({ error: 'Datos no válidos' })
 
-    const result = await callFivem('/action', {
-      ...fivemPayload(staff),
-      action,
-      target: typeof target === 'number' ? target : undefined,
-      data: data && typeof data === 'object' ? data : {},
-    })
+    const result = await callFivem('/webadmin/call', { ...staff.identity, op, data: data ?? {} })
+    if (!/^(stream_poll|stream_signal|panel|console_read|chat_messages)$/.test(op)) console.log(`[admin] ${staff.session.username} (${staff.session.id}) -> ${op}`)
     return res.json(result)
   } catch (error) {
     return sendError(res, error)

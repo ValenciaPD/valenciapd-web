@@ -2,8 +2,8 @@ import { createHmac } from 'crypto'
 
 import { env } from '../config/env.js'
 
-// Cliente del recurso valencia_webadmin del servidor FiveM.
-// Las peticiones van firmadas con HMAC (ver valencia_webadmin/server/http.js).
+// Cliente del panel web integrado en luxu_admin (luxu_admin/server/webadmin.js).
+// Las peticiones van firmadas con HMAC-SHA256, caducan a los 60 s y el servidor no acepta una firma dos veces.
 
 export class FivemError extends Error {
   constructor(public status: number, message: string) {
@@ -15,12 +15,18 @@ export function isFivemConfigured(): boolean {
   return env.fivem.apiSecret.length >= 32
 }
 
+export interface FivemIdentity {
+  discordId: string
+  roles: string[]
+  name: string
+}
+
 export async function callFivem<T = unknown>(
-  route: '/me' | '/action',
-  payload: Record<string, unknown>,
+  route: '/webadmin/me' | '/webadmin/call',
+  payload: FivemIdentity & Record<string, unknown>,
 ): Promise<T> {
   if (!isFivemConfigured()) {
-    throw new FivemError(503, 'El panel no está configurado (falta FIVEM_API_SECRET)')
+    throw new FivemError(503, 'El panel no está configurado (falta FIVEM_API_SECRET en Vercel)')
   }
 
   const body = JSON.stringify(payload)
@@ -39,6 +45,7 @@ export async function callFivem<T = unknown>(
         'X-VPD-Signature': signature,
       },
       body,
+      redirect: 'error',
       signal: AbortSignal.timeout(15_000),
     })
   } catch {
@@ -54,7 +61,7 @@ export async function callFivem<T = unknown>(
   }
 
   if (!response.ok) {
-    throw new FivemError(response.status, data.error || `Error ${response.status} del servidor de FiveM`)
+    throw new FivemError(response.status === 401 ? 502 : response.status, data.error || `Error ${response.status} del servidor de FiveM`)
   }
 
   return data as T

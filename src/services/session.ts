@@ -8,6 +8,7 @@ export interface DiscordSession {
   displayName: string
   username: string
   avatarUrl: string | null
+  createdAt: number
 }
 
 export function createDiscordSession(user: { id: string; username: string; global_name?: string | null; avatar?: string | null }): string {
@@ -38,8 +39,17 @@ export function getDiscordSession(req: Request): DiscordSession | null {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as { id?: string; displayName?: string; username?: string; avatarUrl?: string | null; createdAt?: number }
     if (!payload.id || !payload.displayName || !payload.username || !payload.createdAt) return null
     if (Date.now() - payload.createdAt > 7 * 24 * 60 * 60 * 1000) return null
-    return { id: payload.id, displayName: payload.displayName, username: payload.username, avatarUrl: payload.avatarUrl ?? null }
+    return { id: payload.id, displayName: payload.displayName, username: payload.username, avatarUrl: payload.avatarUrl ?? null, createdAt: payload.createdAt }
   } catch {
     return null
   }
+}
+
+// Nonce de OAuth ligado al navegador: el `state` que vuelve de Discord debe coincidir con esta cookie.
+// Evita que alguien inicie sesión a otra persona con su propia cuenta (login CSRF).
+export const OAUTH_NONCE_COOKIE = 'vpd_oauth'
+
+export function readCookie(req: Request, name: string): string | null {
+  const match = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(`${name}=`))
+  return match ? match.slice(name.length + 1) : null
 }

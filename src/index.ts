@@ -8,12 +8,14 @@ import adminRoutes from './routes/admin.js'
 import { env } from './config/env.js'
 import { createState, verifyState } from './utils/crypto.js'
 import { exchangeCode, getDiscordOAuthUrl, getDiscordUser, isGuildMember, addUserToGuild } from './services/discord.js'
-import { createDiscordSession, getDiscordSession } from './services/session.js'
+import { createDiscordSession, getDiscordSession, OAUTH_NONCE_COOKIE, readCookie } from './services/session.js'
+import { randomBytes } from 'crypto'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
+app.disable('x-powered-by')
 
 app.use(express.json({ limit: '10mb' }))
 
@@ -23,9 +25,16 @@ function htmlEscape(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;')
 }
 
+// El callback de Discord puede llegar por otro subdominio: la cookie del nonce vale para todo valenciapd.es
+function cookieDomain(req: express.Request): string {
+  return /(^|\.)valenciapd\.es$/.test(req.hostname) ? ' Domain=.valenciapd.es;' : ''
+}
+
 app.get('/discord', (req, res) => {
   // ?next=admin -> tras el login vuelve al panel de staff
-  const state = req.query.next === 'admin' ? `discord|admin|${createState()}` : `discord|${createState()}`
+  const nonce = randomBytes(16).toString('hex')
+  res.append('Set-Cookie', `${OAUTH_NONCE_COOKIE}=${nonce};${cookieDomain(req)} Path=/; Max-Age=600; HttpOnly; Secure; SameSite=Lax`)
+  const state = req.query.next === 'admin' ? `discord|admin|${nonce}|${createState()}` : `discord|${nonce}|${createState()}`
   return res.redirect(getDiscordOAuthUrl(state))
 })
 
@@ -37,15 +46,19 @@ app.get('/callback', async (req, res, next) => {
     let state = rawState.slice('discord|'.length)
     const toAdmin = state.startsWith('admin|')
     if (toAdmin) state = state.slice('admin|'.length)
+    const [nonce, ...rest] = state.split('|')
+    state = rest.join('|')
+    const expectedNonce = readCookie(req, OAUTH_NONCE_COOKIE)
+    res.append('Set-Cookie', `${OAUTH_NONCE_COOKIE}=;${cookieDomain(req)} Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`)
     const code = typeof req.query.code === 'string' ? req.query.code : ''
-    if (!code || !verifyState(state)) {
+    if (!code || !verifyState(state) || !nonce || nonce !== expectedNonce) {
       return res.status(400).type('html').send('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discord · ValenciaPD</title><link rel="stylesheet" href="/site/pcs.css"></head><body><main class="page-hero"><div class="container"><span class="eyebrow">Discord</span><h1>Conexión no válida</h1><p class="page-lead">La solicitud ha caducado o no es válida. Vuelve a la web e inténtalo de nuevo.</p><a class="btn btn-primary btn-lg" href="/">Volver al inicio</a></div></main></body></html>')
     }
     const tokens = await exchangeCode(code)
     const user = await getDiscordUser(tokens.access_token)
     if (!(await isGuildMember(user.id))) await addUserToGuild(tokens.access_token, user.id)
     const session = createDiscordSession(user)
-    res.setHeader('Set-Cookie', `vpd_discord=${session}; Domain=.valenciapd.es; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
+    res.append('Set-Cookie', `vpd_discord=${session}; Domain=.valenciapd.es; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
     return res.redirect(toAdmin ? 'https://www.valenciapd.es/admin' : 'https://www.valenciapd.es/')
   } catch (error) {
     console.error('Discord connection error:', error)

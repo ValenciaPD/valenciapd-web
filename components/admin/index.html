@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#07080B">
+  <title>Panel de staff | ValenciaPD</title>
+  <link rel="icon" type="image/png" href="/site/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/admin/assets/admin.css">
+  <script src="/admin/assets/admin.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <button class="btn ghost icon only-mobile" id="menu-toggle" type="button" aria-label="Menú">☰</button>
+    <a class="brand" href="/"><img src="/site/valenciapd-logo.png" alt=""><span>Valencia PD <small>Staff</small></span></a>
+    <div class="spacer"></div>
+    <div class="me" id="me" hidden>
+      <img id="me-avatar" alt="">
+      <div class="who"><b id="me-name"></b><span id="me-group"></span></div>
+      <a class="btn ghost sm" href="/admin/logout">Salir</a>
+    </div>
+  </header>
+
+  <div class="gate" id="gate">
+    <div class="box">
+      <h1 id="gate-title">Cargando panel…</h1>
+      <p id="gate-text"></p>
+      <div class="row center" id="gate-actions"></div>
+    </div>
+  </div>
+
+  <div class="layout" id="layout" hidden>
+    <nav class="side" id="nav" aria-label="Secciones"></nav>
+    <main class="content" id="content"></main>
+  </div>
+
+  <dialog id="dlg">
+    <form method="dialog" id="dlg-form" novalidate>
+      <div class="dlg-head"><h3 id="dlg-title"></h3><button class="btn ghost sm" value="cancel" formnovalidate aria-label="Cerrar">✕</button></div>
+      <div class="dlg-body" id="dlg-body"></div>
+      <div class="dlg-foot" id="dlg-foot"></div>
+    </form>
+  </dialog>
+
+  <div id="toasts" aria-live="polite"></div>
+</body>
+</html>

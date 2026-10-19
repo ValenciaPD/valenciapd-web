@@ -24,9 +24,9 @@ export const env = {
     botApiSecret: required('BOT_API_SECRET'),
   },
 
-  // Puente con el servidor FiveM (recurso valencia_webadmin). Opcional: sin él, /admin muestra un aviso.
+  // Panel web integrado en luxu_admin (server/webadmin.js). Opcional: sin él, /admin muestra un aviso.
   fivem: {
-    apiUrl: (process.env.FIVEM_API_URL || 'http://83.150.218.223:30004/valencia_webadmin').replace(/\/+$/, ''),
+    apiUrl: (process.env.FIVEM_API_URL || 'http://83.150.218.223:30004/luxu_admin').replace(/\/+$/, ''),
     apiSecret: process.env.FIVEM_API_SECRET || '',
   },
 
