@@ -24,15 +24,6 @@ export const env = {
     botApiSecret: required('BOT_API_SECRET'),
   },
 
-  // Panel web integrado en luxu_admin (server/webadmin.js). Opcional: sin él, /admin muestra un aviso.
-  fivem: {
-    apiUrl: (process.env.FIVEM_API_URL || 'http://83.150.218.223:30004/luxu_admin').replace(/\/+$/, ''),
-    apiSecret: process.env.FIVEM_API_SECRET || '',
-    // Base de datos del servidor (mysql://usuario:contraseña@host:3306/base). Si existe, las peticiones van
-    // por el buzón de MySQL en vez de por HTTP, porque el hosting no deja conectar con el servidor de FiveM.
-    dbUrl: process.env.FIVEM_DB_URL || '',
-  },
-
   publicUrl:
     process.env.VERIFICATION_URL ||
     'https://verificacion.valenciapd.es',

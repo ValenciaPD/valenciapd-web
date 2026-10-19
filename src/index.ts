@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url'
 
 import transcriptRoutes from './routes/transcripts.js'
 import verificationRoutes from './routes/verification.js'
-import adminRoutes from './routes/admin.js'
 import { env } from './config/env.js'
 import { createState, verifyState } from './utils/crypto.js'
 import { exchangeCode, getDiscordOAuthUrl, getDiscordUser, isGuildMember, addUserToGuild } from './services/discord.js'
@@ -31,10 +30,9 @@ function cookieDomain(req: express.Request): string {
 }
 
 app.get('/discord', (req, res) => {
-  // ?next=admin -> tras el login vuelve al panel de staff
   const nonce = randomBytes(16).toString('hex')
   res.append('Set-Cookie', `${OAUTH_NONCE_COOKIE}=${nonce};${cookieDomain(req)} Path=/; Max-Age=600; HttpOnly; Secure; SameSite=Lax`)
-  const state = req.query.next === 'admin' ? `discord|admin|${nonce}|${createState()}` : `discord|${nonce}|${createState()}`
+  const state = `discord|${nonce}|${createState()}`
   return res.redirect(getDiscordOAuthUrl(state))
 })
 
@@ -44,8 +42,6 @@ app.get('/callback', async (req, res, next) => {
 
   try {
     let state = rawState.slice('discord|'.length)
-    const toAdmin = state.startsWith('admin|')
-    if (toAdmin) state = state.slice('admin|'.length)
     const [nonce, ...rest] = state.split('|')
     state = rest.join('|')
     const expectedNonce = readCookie(req, OAUTH_NONCE_COOKIE)
@@ -59,7 +55,7 @@ app.get('/callback', async (req, res, next) => {
     if (!(await isGuildMember(user.id))) await addUserToGuild(tokens.access_token, user.id)
     const session = createDiscordSession(user)
     res.append('Set-Cookie', `vpd_discord=${session}; Domain=.valenciapd.es; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Lax`)
-    return res.redirect(toAdmin ? 'https://www.valenciapd.es/admin' : 'https://www.valenciapd.es/')
+    return res.redirect('https://www.valenciapd.es/')
   } catch (error) {
     console.error('Discord connection error:', error)
     return res.status(500).type('html').send('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Discord · ValenciaPD</title><link rel="stylesheet" href="/site/pcs.css"></head><body><main class="page-hero"><div class="container"><span class="eyebrow">Discord</span><h1>No hemos podido conectar la cuenta</h1><p class="page-lead">El servicio de Discord ha rechazado temporalmente la solicitud. Inténtalo de nuevo desde Valencia PD.</p><a class="btn btn-primary btn-lg" href="/discord">Intentar de nuevo</a></div></main></body></html>')
@@ -103,7 +99,6 @@ app.get('/healthz', (_req, res) => {
   })
 })
 
-app.use(adminRoutes)
 app.use(verificationRoutes)
 app.use(transcriptRoutes)
 
