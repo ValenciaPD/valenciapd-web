@@ -74,6 +74,12 @@
     averagePlaytime: 'Tiempo medio de juego', peakPlayers: 'Pico de jugadores', totalJailed: 'Encarcelados', totalVehicles: 'Vehículos',
   }
   const TASK_LABELS = { deleteVehicles: 'Borrar vehículos abandonados' }
+  // Los mismos que usa luxu_admin en el juego para la retransmisión
+  const LUXU_ICE = [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  ]
   const WEATHERS = ['EXTRASUNNY', 'CLEAR', 'NEUTRAL', 'SMOG', 'FOGGY', 'OVERCAST', 'CLOUDS', 'CLEARING', 'RAIN', 'THUNDER', 'SNOW', 'BLIZZARD', 'SNOWLIGHT', 'XMAS', 'HALLOWEEN']
 
   // ------------------------------------------------------------------ diálogos
@@ -496,18 +502,35 @@
     sheet(`Observando · ${p.name} (#${p.source})`, el('div', {}, video, status), [], { onclose: stop })
     try {
       session = await call('stream_start', { target: p.source })
-      const iceServers = asList(session.iceServers).filter((s) => s && s.urls)
+      // mismos servidores ICE que usa el jugador en luxu (STUN + TURN público) más los del servidor
+      const iceServers = [...asList(session.iceServers).filter((s) => s && s.urls), ...LUXU_ICE]
       pc = new RTCPeerConnection({ iceServers })
       pc.addTransceiver('video', { direction: 'recvonly' })
-      pc.ontrack = (e) => { video.srcObject = e.streams[0] || new MediaStream([e.track]); status.textContent = 'En directo' }
-      pc.onconnectionstatechange = () => { if (['failed', 'disconnected'].includes(pc.connectionState)) status.textContent = 'Conexión perdida (puede que la red del jugador no permita la retransmisión).' }
+      pc.ontrack = (e) => { video.srcObject = e.streams[0] || new MediaStream([e.track]); status.textContent = 'En directo'; video.play().catch(() => {}) }
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connecting') status.textContent = 'Conectando el vídeo…'
+        if (['failed', 'disconnected'].includes(pc.connectionState)) status.textContent = 'Conexión perdida (puede que la red del jugador no permita la retransmisión).'
+      }
       const signal = (type, payload) => call('stream_signal', { sessionId: session.sessionId, viewerToken: session.viewerToken, type, payload })
-      pc.onicecandidate = (e) => { if (e.candidate) signal('ice-candidate', e.candidate.toJSON()).catch(() => {}) }
+      // los candidatos ICE se agrupan para no enviar decenas de peticiones
+      let iceBatch = []
+      pc.onicecandidate = (e) => { if (e.candidate) iceBatch.push(e.candidate.toJSON()) }
+      const flushIce = () => { const b = iceBatch.splice(0); for (const c of b) signal('ice-candidate', c).catch(() => {}) }
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
-      await signal('offer', { type: offer.type, sdp: offer.sdp })
+      // El juego del jugador prepara su lado de la conexión de forma asíncrona y no avisa cuando está listo:
+      // si la oferta llega antes, se pierde. Esperamos un poco y la reenviamos hasta recibir respuesta.
+      status.textContent = 'Esperando a que el juego del jugador prepare la retransmisión…'
+      const sendOffer = () => signal('offer', { type: pc.localDescription.type, sdp: pc.localDescription.sdp })
+      await new Promise((r) => setTimeout(r, 2500))
+      if (stopped) return
+      await sendOffer()
+      let offerAttempts = 1, lastOffer = Date.now()
       let delay = 500
       while (!stopped) {
+        if (!pc.remoteDescription && Date.now() - lastOffer > 5000 && offerAttempts < 4) { offerAttempts++; lastOffer = Date.now(); await sendOffer().catch(() => {}) }
+        if (pc.remoteDescription && iceBatch.length) flushIce()
+        if (!pc.remoteDescription && offerAttempts >= 4 && Date.now() - lastOffer > 8000) { status.textContent = 'El jugador no respondió. Puede que su juego no permita retransmitir (menú abierto, pantalla minimizada…).'; break }
         await new Promise((r) => setTimeout(r, delay))
         if (stopped) break
         const msgs = asList(await call('stream_poll', { sessionId: session.sessionId, viewerToken: session.viewerToken }).catch((e) => { status.textContent = e.message; stopped = true; return [] }))

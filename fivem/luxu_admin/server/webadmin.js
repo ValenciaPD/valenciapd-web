@@ -12,6 +12,10 @@
   const crypto = require('crypto')
   const RESOURCE = GetCurrentResourceName()
   const W = (globalThis.__vpdWeb ??= { cbs: new Map() })
+
+  // La acción "curar" de luxu llama a SetEntityHealth en el servidor, pero esa nativa solo existe en el cliente
+  // (fallaba también desde el juego). luxu ya cura al jugador con su evento de cliente, así que basta con no romper.
+  if (typeof globalThis.SetEntityHealth !== 'function') globalThis.SetEntityHealth = () => {}
   W.virtual ??= new Map()
 
   // ---------------------------------------------------------------- configuración
@@ -101,8 +105,9 @@
     }
   }
 
-  const runAction = (key, staff, data) => W.actions[key].handler(null, data, { ...staff, source: null })
-  const runOffline = (key, staff, data) => W.offline[key].handler(null, data, { ...staff, source: null })
+  // Con un origen virtual (y no null) los avisos que luxu manda "al staff que ejecutó la acción" no fallan
+  const runAction = (key, staff, data) => withVirtualSource(staff, (src) => W.actions[key].handler(src, data, { ...staff, source: src }))
+  const runOffline = (key, staff, data) => withVirtualSource(staff, (src) => W.offline[key].handler(src, data, { ...staff, source: src }))
   const runNonAction = (key, staff, data) => {
     const h = W.webPanel?.nonActionHandlers?.get(key)
     if (!h) throw new UserError('Función no disponible: ' + key)
