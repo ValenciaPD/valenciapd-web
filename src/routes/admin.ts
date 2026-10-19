@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import { getGuildMember } from '../services/discord.js'
 import { callFivem, FivemError, isFivemConfigured, type FivemIdentity } from '../services/fivem.js'
 import { getDiscordSession, type DiscordSession } from '../services/session.js'
+import { env } from '../config/env.js'
 
 const router = Router()
 
@@ -166,17 +167,21 @@ router.get('/api/admin/me', async (req, res) => {
 })
 
 // Diagnóstico de la conexión web -> FiveM. No expone datos: solo si el servidor responde y si el secreto coincide.
+const DIAG_URLS = ['https://deprecated-gaa58qq.users.cfx.re/luxu_admin', 'https://gaa58qq.users.cfx.re/luxu_admin']
 router.get('/api/admin/diag', async (_req, res) => {
   if (!isFivemConfigured()) return res.json({ configured: false, result: 'missing_secret' })
-  try {
-    // ID imposible: si la firma es válida, luxu responde 403 "sin grupo de staff"
-    await callFivem('/webadmin/me', { discordId: '0', roles: [], name: 'diag' })
-    return res.json({ configured: true, result: 'ok' })
-  } catch (error) {
-    if (!(error instanceof FivemError)) return res.json({ configured: true, result: 'error' })
-    const result = error.status === 403 ? 'ok' : error.message === 'No autorizado' ? 'bad_secret' : error.status === 502 && /conectar/.test(error.message) ? 'unreachable' : `http_${error.status}`
-    return res.json({ configured: true, result })
+  const probe = async (url: string) => {
+    try {
+      // ID imposible: si la firma es válida, luxu responde 403 "sin grupo de staff"
+      await callFivem('/webadmin/me', { discordId: '0', roles: [], name: 'diag' }, url)
+      return 'ok'
+    } catch (error) {
+      if (!(error instanceof FivemError)) return 'error'
+      return error.status === 403 ? 'ok' : error.message === 'No autorizado' ? 'bad_secret' : error.status === 502 && /conectar/.test(error.message) ? 'unreachable' : `http_${error.status}`
+    }
   }
+  const [current, ...alts] = await Promise.all([probe(env.fivem.apiUrl), ...DIAG_URLS.map(probe)])
+  return res.json({ configured: true, result: current, alternatives: Object.fromEntries(DIAG_URLS.map((u, i) => [new URL(u).host, alts[i]])) })
 })
 
 router.post('/api/admin/call', async (req, res) => {

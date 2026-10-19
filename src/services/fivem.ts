@@ -24,6 +24,7 @@ export interface FivemIdentity {
 export async function callFivem<T = unknown>(
   route: '/webadmin/me' | '/webadmin/call',
   payload: FivemIdentity & Record<string, unknown>,
+  baseUrl: string = env.fivem.apiUrl,
 ): Promise<T> {
   if (!isFivemConfigured()) {
     throw new FivemError(503, 'El panel no está configurado (falta FIVEM_API_SECRET en Vercel)')
@@ -37,7 +38,7 @@ export async function callFivem<T = unknown>(
 
   let response: Response
   try {
-    response = await fetch(`${env.fivem.apiUrl}${route}`, {
+    response = await fetch(`${baseUrl}${route}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
