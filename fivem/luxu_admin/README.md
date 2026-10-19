@@ -5,10 +5,20 @@ Estos son los únicos archivos añadidos o cambiados en el recurso:
 
 | Archivo | Qué hace |
 | --- | --- |
-| `server/webadmin.js` | API HTTP del panel (`/luxu_admin/webadmin/*`): firma HMAC, lista blanca de operaciones con su permiso de luxu, validación de datos, retransmisión de pantalla. |
+| `server/webadmin.js` | API del panel: recoge las peticiones del buzón MySQL `luxu_admin_webadmin_queue` (y también por HTTP en `/luxu_admin/webadmin/*` si el puerto fuera accesible). Firma HMAC, lista blanca de operaciones con su permiso de luxu, validación de datos, retransmisión de pantalla. |
 | `server/index.js` | 6 *hooks* mínimos (con `inject_webadmin_hooks.py`) que exponen los manejadores que ya usa el panel externo oficial de luxu. No cambian nada del menú en el juego. |
-| `fxmanifest.lua` | Añade `'server/webadmin.js'` a `server_scripts`, justo después de `'server/index.js'`. |
+| `fxmanifest.lua` | Añade `'server/webadmin.js'` a `server_scripts`, justo después de `'server/index.js'`, y `'ox_lib'` a `dependencies` (así ox_lib siempre arranca antes). |
 | `config/webadmin.json` | `{"enabled": true, "secret": "..."}`. El secreto es el mismo que `FIVEM_API_SECRET` en Vercel. No se envía a los jugadores (no está en `files`). |
+
+## Conexión con la web
+
+El hosting no deja que Vercel conecte con el servidor de FiveM, así que la web deja cada petición firmada en la tabla
+`luxu_admin_webadmin_queue` (la crea luxu al arrancar) y luxu la recoge cada 150-400 ms. En Vercel hacen falta:
+
+- `FIVEM_API_SECRET`: igual que `secret` en `config/webadmin.json`.
+- `FIVEM_DB_URL`: `mysql://usuario:contraseña@82.41.119.3:3306/base` (la misma base de datos que usa el servidor).
+
+Diagnóstico: `https://www.valenciapd.es/api/admin/diag` (`result: ok` = todo conectado).
 
 ## Seguridad
 

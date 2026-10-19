@@ -4,7 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { getGuildMember } from '../services/discord.js'
-import { callFivem, FivemError, isFivemConfigured, type FivemIdentity } from '../services/fivem.js'
+import { callFivem, FivemError, isDatabaseTransport, isFivemConfigured, type FivemIdentity } from '../services/fivem.js'
 import { getDiscordSession, type DiscordSession } from '../services/session.js'
 import { env } from '../config/env.js'
 
@@ -188,7 +188,7 @@ router.get('/api/admin/diag', async (_req, res) => {
     sock.once('timeout', () => { sock.destroy(); resolve('timeout') })
     sock.once('error', (e: NodeJS.ErrnoException) => resolve(e.code || 'error'))
   })
-  return res.json({ configured: true, db, result: current, alternatives: Object.fromEntries(DIAG_URLS.map((u, i) => [new URL(u).host, alts[i]])) })
+  return res.json({ configured: true, transport: isDatabaseTransport() ? 'mysql' : 'http', db, result: current, alternatives: Object.fromEntries(DIAG_URLS.map((u, i) => [new URL(u).host, alts[i]])) })
 })
 
 router.post('/api/admin/call', async (req, res) => {

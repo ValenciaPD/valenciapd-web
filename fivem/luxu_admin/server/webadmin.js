@@ -394,12 +394,11 @@
     return [200, { result: result === undefined ? null : result }]
   }
 
-  // ---------------------------------------------------------------- HTTP
+  // ---------------------------------------------------------------- petición firmada (común a todos los transportes)
   const usedSignatures = new Map()
-  function verify(req, path, body) {
-    const h = Object.fromEntries(Object.entries(req.headers || {}).map(([k, v]) => [String(k).toLowerCase(), v]))
-    const ts = Number(h['x-vpd-timestamp'])
-    const sig = String(h['x-vpd-signature'] ?? '')
+  function verify(path, body, tsRaw, sigRaw) {
+    const ts = Number(tsRaw)
+    const sig = String(sigRaw ?? '')
     if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > MAX_SKEW_MS) return false
     if (!/^[0-9a-f]{64}$/.test(sig) || usedSignatures.has(sig)) return false
     const expected = crypto.createHmac('sha256', SECRET).update(`${ts}.${path}.${body}`).digest()
@@ -411,21 +410,15 @@
     return true
   }
 
-  function reply(res, status, payload) {
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
-    res.send(JSON.stringify(payload))
-  }
-
-  SetHttpHandler((req, res) => {
-    const path = String(req.path || '').split('?')[0]
-    if (!path.startsWith('/webadmin/')) return reply(res, 404, { error: 'No encontrado' })
-    if (req.method !== 'POST') return reply(res, 405, { error: 'Método no permitido' })
-
-    req.setDataHandler(async (raw) => {
+  // Ejecuta una petición ya recibida. Devuelve [estado HTTP, respuesta].
+  async function handle(path, raw, ts, sig) {
+    const reply = (_res, status, payload) => [status, payload]
+    const res = null
+    {
       try {
         raw = raw || ''
         if (raw.length > MAX_BODY) return reply(res, 413, { error: 'Petición demasiado grande' })
-        if (!verify(req, path, raw)) return reply(res, 401, { error: 'No autorizado' })
+        if (!verify(path, raw, ts, sig)) return reply(res, 401, { error: 'No autorizado' })
         const body = JSON.parse(raw)
         if (!body || typeof body !== 'object') return reply(res, 400, { error: 'JSON no válido' })
 
@@ -475,8 +468,76 @@
         log('^1Error:^0', e?.stack || e)
         return reply(res, 500, { error: 'Error interno del servidor de FiveM' })
       }
-    })
+    }
+  }
+
+  // ---------------------------------------------------------------- transporte 1: HTTP directo (si algún día el puerto es accesible)
+  SetHttpHandler((req, res) => {
+    const send = (status, payload) => {
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.send(JSON.stringify(payload))
+    }
+    const path = String(req.path || '').split('?')[0]
+    if (!path.startsWith('/webadmin/')) return send(404, { error: 'No encontrado' })
+    if (req.method !== 'POST') return send(405, { error: 'Método no permitido' })
+    const h = Object.fromEntries(Object.entries(req.headers || {}).map(([k, v]) => [String(k).toLowerCase(), v]))
+    req.setDataHandler(async (raw) => send(...(await handle(path, raw, h['x-vpd-timestamp'], h['x-vpd-signature']))))
   })
+
+  // ---------------------------------------------------------------- transporte 2: buzón en MySQL
+  // La web (Vercel) no puede abrir conexiones con este servidor, así que deja las peticiones firmadas en esta
+  // tabla y luxu las recoge con su propia conexión a la base de datos.
+  const QUEUE = 'luxu_admin_webadmin_queue'
+  let lastActivity = 0
+  let polling = false
+  async function pollQueue() {
+    if (polling) return
+    polling = true
+    try {
+      const rows = (await db('query', `SELECT id, route, body, ts, sig FROM ${QUEUE} WHERE status = 'pending' ORDER BY id LIMIT 25`)) || []
+      if (rows.length) lastActivity = Date.now()
+      await Promise.all(rows.map(async (r) => {
+        const claimed = await db('update', `UPDATE ${QUEUE} SET status = 'processing' WHERE id = ? AND status = 'pending'`, [r.id])
+        if (claimed !== 1) return
+        const path = r.route === '/webadmin/me' || r.route === '/webadmin/call' ? r.route : ''
+        const [status, payload] = path ? await handle(path, r.body, r.ts, r.sig) : [404, { error: 'Ruta no encontrada' }]
+        await db('update', `UPDATE ${QUEUE} SET status = 'done', http_status = ?, result = ? WHERE id = ?`, [status, JSON.stringify(payload ?? null), r.id])
+      }))
+    } catch (e) {
+      log('^1Error en el buzón:^0', e?.message || e)
+    } finally {
+      polling = false
+    }
+  }
+  ;(async () => {
+    try {
+      await db('query', `CREATE TABLE IF NOT EXISTS ${QUEUE} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        route VARCHAR(32) NOT NULL,
+        body MEDIUMTEXT NOT NULL,
+        ts VARCHAR(20) NOT NULL,
+        sig CHAR(64) NOT NULL,
+        status ENUM('pending','processing','done') NOT NULL DEFAULT 'pending',
+        http_status SMALLINT UNSIGNED DEFAULT NULL,
+        result MEDIUMTEXT DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY status_id (status, id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+      const cleanup = () => db('update', `DELETE FROM ${QUEUE} WHERE created_at < NOW() - INTERVAL 2 MINUTE`).catch(() => {})
+      await cleanup()
+      setInterval(cleanup, 60_000)
+      // rápido mientras hay actividad, más lento en reposo
+      const loop = async () => {
+        await pollQueue()
+        setTimeout(loop, Date.now() - lastActivity < 60_000 ? 150 : 400)
+      }
+      loop()
+      log('Buzón MySQL del panel web listo.')
+    } catch (e) {
+      log('^1No se pudo preparar el buzón MySQL:^0', e?.message || e)
+    }
+  })()
 
   function jailCells() {
     try {
