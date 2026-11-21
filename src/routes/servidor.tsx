@@ -44,7 +44,7 @@ function ServidorPage() {
               los servicios de emergencia y los maleantes, encargados de generar rol protagonizando avisos.
             </p>
             <p className="prose">
-              El <strong>AOP</strong> es el lugar donde se desarrolla el rol. Habitualmente, si no hay actividad IC el AOP es Torrent o Burjassot; cuando
+              El <strong>AOP</strong> es el lugar donde se desarrolla el rol. Habitualmente, si no hay actividad IC el AOP es Meliana o Silla; cuando
               hay más actividad se cambia a Valencia Centro.
             </p>
             <p className="prose">
@@ -83,12 +83,12 @@ function ServidorPage() {
               <p>Policía Nacional · Policía Municipal de Valencia · SAMU · Cuerpo de Bomberos del Ayuntamiento de Valencia.</p>
             </article>
             <article className="card feature-card">
-              <h3>AOP Torrent (Paleto Bay)</h3>
-              <p>Guardia Civil · Policía Local de Torrent · SAMU · Cuerpo de Bomberos de la Comunidad Valenciana.</p>
+              <h3>AOP Meliana (Paleto Bay)</h3>
+              <p>Guardia Civil · Policía Local de Meliana · SAMU · Cuerpo de Bomberos de la Comunidad Valenciana.</p>
             </article>
             <article className="card feature-card">
-              <h3>AOP Burjassot (Sandy Shores y Grapeseed)</h3>
-              <p>Guardia Civil · Policía Local de Burjassot · SAMU · Cuerpo de Bomberos de la Comunidad Valenciana.</p>
+              <h3>AOP Silla (Sandy Shores y Grapeseed)</h3>
+              <p>Guardia Civil · Policía Local de Silla · SAMU · Cuerpo de Bomberos de la Comunidad Valenciana.</p>
             </article>
           </div>
         </div>

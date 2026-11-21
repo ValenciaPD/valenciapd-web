@@ -29,7 +29,7 @@
         ${navLink('/galeria','Galería')}
         ${navLink('/servicios','Servicios')}
         ${navLink('/normativa','Normativa')}
-        ${navLink('/guia-inicio','Guía')}
+        ${`<a href="/docs" class="${path.startsWith('/docs') ? 'active' : ''}">Guía</a>`}
         <a class="nav-play fivem-launch" href="${FIVEM_PROTOCOL}" data-fivem-launch>▶ Jugar</a>
       </nav>
       <div class="header-actions">
@@ -43,7 +43,7 @@
     return `<footer class="site-footer"><div class="container footer-inner">
       <div class="footer-brand"><img src="${LOGO}" alt="Valencia PD" class="brand-logo footer-logo"><div><strong>VALENCIA PD</strong><p>Comunidad de roleplay FivePD ambientada en la Comunidad Valenciana.</p></div></div>
       <nav class="footer-nav" aria-label="Enlaces del pie de página">
-        <div class="footer-col"><h4>Servidor</h4><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="/guia-inicio">Guía de inicio</a><a href="/estado">Estado</a></div>
+        <div class="footer-col"><h4>Servidor</h4><a href="/galeria">Galería</a><a href="/servicios">Servicios</a><a href="/normativa">Normativa</a><a href="/docs">Documentación</a><a href="/estado">Estado</a></div>
         <div class="footer-col"><h4>Comunidad</h4><a href="/postular">Postular</a><a href="${UNBAN_DISCORD}" target="_blank" rel="noopener">Desbaneos</a></div>
         <div class="footer-col"><h4>Legal</h4><a href="/legal/privacidad">Política de privacidad</a><a href="/legal/terminos">Términos y condiciones</a></div>
       </nav>
@@ -73,7 +73,7 @@
       </div>
       <button class="hero-arrow hero-prev" aria-label="Diapositiva anterior" data-dir="-1">‹</button><button class="hero-arrow hero-next" aria-label="Diapositiva siguiente" data-dir="1">›</button>
       <div class="hero-dots"><button class="hero-dot active" data-slide="0" aria-label="Ir a la diapositiva 1"></button><button class="hero-dot" data-slide="1" aria-label="Ir a la diapositiva 2"></button><button class="hero-dot" data-slide="2" aria-label="Ir a la diapositiva 3"></button></div>
-    </div><ul class="hero-stats" data-reveal><li><strong>FivePD</strong><span>Modalidad de juego</span></li><li><strong>3 AOP</strong><span>Valencia, Torrent y Burjassot</span></li><li><strong>99,9 %</strong><span>Uptime del servidor</span></li><li><strong>24/7</strong><span>Moderación activa</span></li></ul></section>`;
+    </div><ul class="hero-stats" data-reveal><li><strong>FivePD</strong><span>Modalidad de juego</span></li><li><strong>3 AOP</strong><span>Valencia, Meliana y Silla</span></li><li><strong>99,9 %</strong><span>Uptime del servidor</span></li><li><strong>24/7</strong><span>Moderación activa</span></li></ul></section>`;
   }
 
   function home() {
@@ -81,7 +81,7 @@
       <section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Por qué unirte</span><h2>Una experiencia cuidada al detalle</h2><p class="section-lead">Todo está calibrado para un roleplay inmersivo, fluido y serio.</p></div><div class="grid grid-3" data-reveal>
         <article class="card feature-card"><span class="feature-icon-wrap">${featureIcon('role')}</span><h3>Rol inmersivo</h3><p>Rol coherente y de calidad, sin EGO RP y con una normativa aplicada con criterio.</p></article>
         <article class="card feature-card"><span class="feature-icon-wrap">${featureIcon('emergency')}</span><h3>Servicios de emergencia completos</h3><p>Policía Nacional, Guardia Civil, Policía Local, SESCV y Bomberos con jerarquía y equipamiento propios.</p></article>
-        <article class="card feature-card"><span class="feature-icon-wrap">${featureIcon('map')}</span><h3>Tres AOP distintos</h3><p>Valencia Centro, Torrent y Burjassot: el rol cambia de escenario según la actividad del servidor.</p></article>
+        <article class="card feature-card"><span class="feature-icon-wrap">${featureIcon('map')}</span><h3>Tres AOP distintos</h3><p>Valencia Centro, Meliana y Silla: el rol cambia de escenario según la actividad del servidor.</p></article>
       </div></div></section>
       <section class="section section-alt"><div class="container"><div class="section-head"><span class="eyebrow">Empieza en Valencia</span><h2>Todo preparado para tu primera sesión</h2><p class="section-lead">Desde el primer minuto tienes una ruta clara para conectar, informarte y entrar en rol.</p></div><div class="grid grid-3" data-reveal><article class="card feature-card feature-card-soft"><span class="feature-icon-wrap"><span class="feature-number">01</span></span><h3>Lee la guía de inicio</h3><p>Aprende cómo crear tu personaje, entrar en emergencias o desarrollar tu historia como civil o maleante.</p><a class="text-link" href="/guia-inicio">Ver la guía →</a></article><article class="card feature-card feature-card-soft"><span class="feature-icon-wrap"><span class="feature-number">02</span></span><h3>Comprueba el estado</h3><p>Antes de conectar, consulta el estado del servidor y cualquier mantenimiento anunciado por el equipo.</p><a class="text-link" href="/estado">Ver estado →</a></article><article class="card feature-card feature-card-soft"><span class="feature-icon-wrap"><span class="feature-number">03</span></span><h3>Entra cuando estés listo</h3><p>Conecta FiveM directamente desde tu equipo y empieza tu primera historia en Valencia PD.</p><a class="text-link fivem-launch" href="${FIVEM_PROTOCOL}" data-fivem-launch>Jugar ahora →</a></article></div></div></section>
       <section class="section section-alt"><div class="container"><div class="section-head"><span class="eyebrow">Todo lo que necesitas</span><h2>Una comunidad hecha para quedarse</h2><p class="section-lead">Información clara, soporte rápido y un entorno preparado para disfrutar del rol.</p></div><div class="grid grid-3" data-reveal>
@@ -97,12 +97,12 @@
 
   function servidor() {
     return `<main>${pageHero('El servidor','Bienvenido a Valencia PD','FivePD con identidad valenciana, servicios de emergencia y una forma de jugar centrada en el rol.')}
-      <section class="section"><div class="container grid grid-2 align-center"><div><span class="eyebrow">Qué es un FivePD</span><h2>Emergencias contra maleantes</h2><p class="prose">Un servidor FivePD es una modalidad de roleplay centrada únicamente en los <strong>servicios de emergencia</strong>. Existen dos bandos: los servicios de emergencia y los maleantes, encargados de generar rol protagonizando avisos.</p><p class="prose">El <strong>AOP</strong> es el lugar donde se desarrolla el rol. Habitualmente, si no hay actividad IC el AOP es Torrent o Burjassot; cuando hay más actividad se cambia a Valencia Centro.</p><p class="prose">Para entrar, abre FiveM y usa la conexión directa desde el botón de abajo.</p><a href="${FIVEM_PROTOCOL}" data-fivem-launch class="btn btn-primary btn-lg">▶ Abrir FiveM</a></div><div class="media-frame">${assetImg(GALLERY[1],'Patrulla de Valencia PD en servicio')}</div></div></section>
+      <section class="section"><div class="container grid grid-2 align-center"><div><span class="eyebrow">Qué es un FivePD</span><h2>Emergencias contra maleantes</h2><p class="prose">Un servidor FivePD es una modalidad de roleplay centrada únicamente en los <strong>servicios de emergencia</strong>. Existen dos bandos: los servicios de emergencia y los maleantes, encargados de generar rol protagonizando avisos.</p><p class="prose">El <strong>AOP</strong> es el lugar donde se desarrolla el rol. Habitualmente, si no hay actividad IC el AOP es Meliana o Silla; cuando hay más actividad se cambia a Valencia Centro.</p><p class="prose">Para entrar, abre FiveM y usa la conexión directa desde el botón de abajo.</p><a href="${FIVEM_PROTOCOL}" data-fivem-launch class="btn btn-primary btn-lg">▶ Abrir FiveM</a></div><div class="media-frame">${assetImg(GALLERY[1],'Patrulla de Valencia PD en servicio')}</div></div></section>
       <section class="section section-alt"><div class="container"><div class="section-head"><span class="eyebrow">Un equipo atento</span><h2>Staff presente, todos los días</h2><p class="section-lead">Las sanciones se imponen bajo criterio del staff en beneficio del servidor y de los jugadores. La edad mínima es de 15-16 años, según criterios de madurez valorados por la administración.</p></div></div></section>
       <section class="section"><div class="container"><div class="section-head"><span class="eyebrow">Los AOP</span><h2>Tres escenarios, tres plantillas de servicios</h2><p class="section-lead">Los cuerpos disponibles cambian según el AOP establecido.</p></div><div class="grid grid-3" data-reveal>
         <article class="card feature-card"><h3>AOP Valencia Centro (Ciudad)</h3><p>Policía Nacional · Policía Local de Valencia · SESCV · Cuerpo de Bomberos del Ayuntamiento de Valencia.</p></article>
-        <article class="card feature-card"><h3>AOP Torrent (Paleto Bay)</h3><p>Guardia Civil · Policía Local de Torrent · SESCV · Cuerpo de Bomberos de la Comunidad Valenciana.</p></article>
-        <article class="card feature-card"><h3>AOP Burjassot (Sandy Shores y Grapeseed)</h3><p>Guardia Civil · Policía Local de Burjassot · SESCV · Cuerpo de Bomberos de la Comunidad Valenciana.</p></article>
+        <article class="card feature-card"><h3>AOP Meliana (Paleto Bay)</h3><p>Guardia Civil · Policía Local de Meliana · SESCV · Cuerpo de Bomberos de la Comunidad Valenciana.</p></article>
+        <article class="card feature-card"><h3>AOP Silla (Sandy Shores y Grapeseed)</h3><p>Guardia Civil · Policía Local de Silla · SESCV · Cuerpo de Bomberos de la Comunidad Valenciana.</p></article>
       </div></div></section>
       <section class="section"><div class="container"><div class="section-head"><span class="eyebrow">En cifras</span><h2>La comunidad de un vistazo</h2></div><div class="grid grid-4 stats-grid" data-reveal><div class="card stat-card"><strong>3</strong><span>AOP disponibles</span></div><div class="card stat-card"><strong>5</strong><span>Cuerpos de emergencia</span></div><div class="card stat-card"><strong>99,9 %</strong><span>Uptime del servidor</span></div><div class="card stat-card"><strong>24/7</strong><span>Moderación activa</span></div></div></div></section>
     </main>`;

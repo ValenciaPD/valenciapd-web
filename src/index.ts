@@ -73,10 +73,17 @@ app.post('/discord/logout', (_req, res) => {
   return res.status(204).end()
 })
 
-const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/guia-inicio', '/estado', '/postular', '/legal/privacidad', '/legal/terminos']
+const siteRoutes = ['/', '/servidor', '/galeria', '/servicios', '/normativa', '/estado', '/postular', '/legal/privacidad', '/legal/terminos']
 app.get(siteRoutes, (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'site', 'index.html'))
 })
+
+// Documentación (estilo GitBook): /docs y todas sus subpáginas
+app.get(['/docs', '/docs/*'], (req, res, next) => {
+  if (path.extname(req.path)) return next()
+  res.sendFile(path.join(__dirname, '..', 'public', 'docs', 'index.html'))
+})
+app.get('/guia-inicio', (_req, res) => res.redirect(301, '/docs/guia/primeros-pasos/personaje'))
 
 app.get('/instagram', (_req, res) => res.redirect('https://www.instagram.com/valenciapd_/'))
 app.get('/tiktok', (_req, res) => res.redirect('https://www.tiktok.com/@valenciapd_'))

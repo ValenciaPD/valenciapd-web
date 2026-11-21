@@ -69,7 +69,7 @@ function Index() {
                 </svg>
               </span>
               <h3>Tres AOP distintos</h3>
-              <p>Valencia Centro, Torrent y Burjassot: el rol cambia de escenario según la actividad del servidor.</p>
+              <p>Valencia Centro, Meliana y Silla: el rol cambia de escenario según la actividad del servidor.</p>
             </article>
           </div>
         </div>

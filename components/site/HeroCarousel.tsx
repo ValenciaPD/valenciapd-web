@@ -128,7 +128,7 @@ export function HeroCarousel() {
         </li>
         <li>
           <strong>3 AOP</strong>
-          <span>Valencia, Torrent y Burjassot</span>
+          <span>Valencia, Meliana y Silla</span>
         </li>
         <li>
           <strong>99,9 %</strong>
